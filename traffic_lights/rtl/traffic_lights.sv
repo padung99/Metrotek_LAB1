@@ -6,7 +6,7 @@ module traffic_lights #(
   parameter TIME_RED_YELLOW       = 10,
   parameter BLINK_TIME_GREEN      = 15,
 
-  parameter HALF_PERIOD_BLINK     = 3
+  parameter HALF_PERIOD_BLINK     = 3 //max period = 1000 ms = 1s ==> max half period = 500ms = 0.5s
 ) (
   input  logic        clk_i,
   input  logic        srst_i,
@@ -20,13 +20,14 @@ module traffic_lights #(
 
 localparam CLK_FREQ_RED_YELLOW   = CLK_FREQ*TIME_RED_YELLOW;
 localparam CLK_FREQ_BLINK_GREEN  = CLK_FREQ*BLINK_TIME_GREEN;
-
+localparam PERIOD_BLINK          = 2*HALF_PERIOD_BLINK;  
 logic        turn_on;
 logic        turn_off;
 logic        notransition;
 logic        set_yellow_time;
 logic        set_red_time;
 logic        set_green_time;
+
 logic [15:0] time_red;
 logic [15:0] time_yellow;
 logic [15:0] time_green;
@@ -38,8 +39,9 @@ logic [15:0] clk_green;
 logic [15:0] clk_red_yellow;
 logic [15:0] clk_blink_green;
 
-logic [15:0] cnt_blink_yellow;
-logic [15:0] cnt_blink_green;
+//Maximum blink period 1000 ms  = 1s ==> half period = 500ms ==> 9 bit
+logic [8:0] cnt_blink_yellow;
+logic [8:0] cnt_blink_green;
 
 logic        timeout_yellow;
 logic        timeout_green;
@@ -94,7 +96,7 @@ always_comb
       
       RED_YELLOW_S:
         begin
-          if( clk_red_yellow == CLK_FREQ_RED_YELLOW - 1 )
+          if( clk_red_yellow == CLK_FREQ_RED_YELLOW - 16'd1)
             next_state = GREEN_S;
           if( turn_off && cmd_valid_i )
             next_state = IDLE_S; 
@@ -114,7 +116,7 @@ always_comb
       
       BLINK_GREEN_S:
         begin
-          if( clk_blink_green == CLK_FREQ_BLINK_GREEN - 1 )
+          if( clk_blink_green == CLK_FREQ_BLINK_GREEN - 16'd1)
             next_state = YELLOW_S;
           if( turn_off && cmd_valid_i )
             next_state = IDLE_S;
@@ -147,62 +149,62 @@ always_comb
 //output control
 always_comb
   begin
-    red_o    = 0;
+    red_o    = 1'b0;
     yellow_o = yellow_prev;
     green_o  = green_prev;
     case( state )
       IDLE_S:
         begin
-          red_o    = 0;
-          yellow_o = 0;
-          green_o  = 0;
+          red_o    = 1'b0;
+          yellow_o = 1'b0;
+          green_o  = 1'b0;
         end
       
       RED_S:
         begin
-          red_o    = 1;
-          yellow_o = 0;
-          green_o  = 0;
+          red_o    = 1'b1;
+          yellow_o = 1'b0;
+          green_o  = 1'b0;
         end
       
       RED_YELLOW_S:
         begin
-          red_o    = 1;
-          yellow_o = 1;
-          green_o  = 0;
+          red_o    = 1'b1;
+          yellow_o = 1'b1;
+          green_o  = 1'b0;
         end
       
       GREEN_S:
         begin
-          red_o    = 0;
-          yellow_o = 0;
-          green_o  = 1;
+          red_o    = 1'b0;
+          yellow_o = 1'b0;
+          green_o  = 1'b1;
         end
       
       BLINK_GREEN_S:
         begin
-          red_o    = 0;
-          yellow_o = 0;
+          red_o    = 1'b0;
+          yellow_o = 1'b0;
 
           //blink green
-          if( cnt_blink_green == 2*HALF_PERIOD_BLINK*CLK_FREQ )
+          if( cnt_blink_green == PERIOD_BLINK*CLK_FREQ - 9'd1 )
             green_o  = !green_o;
         end
       
       YELLOW_S:
         begin
-          red_o    = 0;
-          yellow_o = 1;
-          green_o  = 0;
+          red_o    = 1'b0;
+          yellow_o = 1'b1;
+          green_o  = 1'b0;
         end
       
       NOTRANSITION_S:
         begin
-          red_o    = 0;
-          green_o  = 0;
+          red_o    = 1'b0;
+          green_o  = 1'b0;
 
           //blink yellow
-          if( cnt_blink_yellow == 2*HALF_PERIOD_BLINK*CLK_FREQ )
+          if( cnt_blink_yellow == PERIOD_BLINK*CLK_FREQ - 9'd1 )
             yellow_o  = !yellow_o;
         end        
     endcase
@@ -218,87 +220,76 @@ always_ff @( posedge clk_i )
         clk_green        <= 16'd0;
         clk_blink_green  <= 16'd0;
         clk_yellow       <= 16'd0;
-        timeout_green    <= 0;
-        timeout_red      <= 0;
-        timeout_yellow   <= 0;
-        cnt_blink_green  <= 16'd0;
-        cnt_blink_yellow <= 16'd0;
+        timeout_green    <= 1'b0;
+        timeout_red      <= 1'b0;
+        timeout_yellow   <= 1'b0;
+        cnt_blink_green  <= 9'd0;
+        cnt_blink_yellow <= 9'd0;
         green_prev       <= green_o;
         yellow_prev      <= yellow_o;
 
       end
     else if( state == RED_S )
       begin   
-        timeout_red <= 0;
-        if( clk_red == time_red*CLK_FREQ - 1 )
+        timeout_red <= 1'b0;
+        if( clk_red == time_red*CLK_FREQ - 16'd2)
           begin
-            clk_red     <= 0;
-            timeout_red <= 1;
+            clk_red     <= 16'd0;
+            timeout_red <= 1'b1;
           end
         else if( !timeout_red )
-          begin
-            clk_red     <= clk_red + 16'd1;
+          clk_red <= clk_red + 16'd1;
             
-          end
       end
     else if( state == RED_YELLOW_S )
       begin
-        if( clk_red_yellow == CLK_FREQ_RED_YELLOW  - 1 )
+        if( clk_red_yellow == CLK_FREQ_RED_YELLOW - 16'd1)
           clk_red_yellow <= 16'd0;
         else
           clk_red_yellow <= clk_red_yellow + 16'd1;
       end
     else if( state == GREEN_S )
       begin
-        timeout_green <= 0;
-        if( clk_green == CLK_FREQ*time_green - 1 )
+        timeout_green <= 1'b0;
+        if( clk_green == CLK_FREQ*time_green  - 16'd2)
           begin
             clk_green     <= 16'd0;
-            timeout_green <= 1;
+            timeout_green <= 1'b1;
           end
         else if( !timeout_green )
-          begin
-            clk_green     <= clk_green + 16'd1;  
-          end
+          clk_green <= clk_green + 16'd1;  
       end
     else  if( state == BLINK_GREEN_S )
       begin   
         green_prev <= green_o;
-        if( clk_blink_green == CLK_FREQ_BLINK_GREEN - 1 )
+        if( clk_blink_green == CLK_FREQ_BLINK_GREEN - 16'd1 )
           clk_blink_green <= 16'd0;
-        else if( cnt_blink_green == 2*HALF_PERIOD_BLINK*CLK_FREQ )
-          begin
-            cnt_blink_green <= 16'd0;
-          end
+        else if( cnt_blink_green == PERIOD_BLINK*CLK_FREQ - 9'd1 )
+          cnt_blink_green <= 9'd0;
         else
           begin
             clk_blink_green <= clk_blink_green + 16'd1;
-            cnt_blink_green <= cnt_blink_green + 16'd1;
+            cnt_blink_green <= cnt_blink_green + 9'd1;
           end
       end
     else if( state == YELLOW_S )
       begin  
-         timeout_yellow <= 0;
-        if( clk_yellow == time_yellow*CLK_FREQ - 1 )
+         timeout_yellow <= 1'b0;
+        if( clk_yellow == time_yellow*CLK_FREQ - 16'd2)
           begin
             clk_yellow     <= 16'd0;
-            timeout_yellow <= 1;
+            timeout_yellow <= 1'b1;
           end
         else if( !timeout_yellow )
-          begin
-            clk_yellow     <= clk_yellow + 16'd1;
-           
-          end     
+          clk_yellow <= clk_yellow + 16'd1;    
       end
     else if( state == NOTRANSITION_S )
       begin
         yellow_prev <= yellow_o;
-        if( cnt_blink_yellow == 2*HALF_PERIOD_BLINK*CLK_FREQ )
-          begin
-            cnt_blink_yellow <= 16'd0;
-          end
+        if( cnt_blink_yellow == PERIOD_BLINK*CLK_FREQ - 9'd1 )
+          cnt_blink_yellow <= 9'd0;
         else
-          cnt_blink_yellow <= cnt_blink_yellow + 16'd1;
+          cnt_blink_yellow <= cnt_blink_yellow + 9'd1;
       end   
   end
 
@@ -315,77 +306,77 @@ always_ff @( posedge clk_i )
       end
   end
 
-//Decoder cmd_type_i
+//Decode cmd_type_i
 always_comb
   begin
     case( cmd_type_i )
       3'd0:
         begin
-          turn_on         = 1;
-          turn_off        = 0;
-          notransition    = 0;
-          set_green_time  = 0;
-          set_red_time    = 0;
-          set_yellow_time = 0;
+          turn_on         = 1'b1;
+          turn_off        = 1'b0;
+          notransition    = 1'b0;
+          set_green_time  = 1'b0;
+          set_red_time    = 1'b0;
+          set_yellow_time = 1'b0;
         end
       
       3'd1:
         begin
-          turn_on         = 0;
-          turn_off        = 1;
-          notransition    = 0;
-          set_green_time  = 0;
-          set_red_time    = 0;
-          set_yellow_time = 0;
+          turn_on         = 1'b0;
+          turn_off        = 1'b1;
+          notransition    = 1'b0;
+          set_green_time  = 1'b0;
+          set_red_time    = 1'b0;
+          set_yellow_time = 1'b0;
         end
       
       3'd2:
         begin
-          turn_on         = 0;
-          turn_off        = 0;
-          notransition    = 1;
-          set_green_time  = 0;
-          set_red_time    = 0;
-          set_yellow_time = 0;
+          turn_on         = 1'b0;
+          turn_off        = 1'b0;
+          notransition    = 1'b1;
+          set_green_time  = 1'b0;
+          set_red_time    = 1'b0;
+          set_yellow_time = 1'b0;
         end
       
       3'd3:
         begin
-          turn_on         = 0;
-          turn_off        = 0;
-          notransition    = 0;
-          set_green_time  = 1;
-          set_red_time    = 0;
-          set_yellow_time = 0;
+          turn_on         = 1'b0;
+          turn_off        = 1'b0;
+          notransition    = 1'b0;
+          set_green_time  = 1'b1;
+          set_red_time    = 1'b0;
+          set_yellow_time = 1'b0;
         end
 
       3'd4:
         begin
-          turn_on         = 0;
-          turn_off        = 0;
-          notransition    = 0;
-          set_green_time  = 0;
-          set_red_time    = 1;
-          set_yellow_time = 0;
+          turn_on         = 1'b0;
+          turn_off        = 1'b0;
+          notransition    = 1'b0;
+          set_green_time  = 1'b0;
+          set_red_time    = 1'b1;
+          set_yellow_time = 1'b0;
         end
 
       3'd5:
         begin
-          turn_on         = 0;
-          turn_off        = 0;
-          notransition    = 0;
-          set_green_time  = 0;
-          set_red_time    = 0;
-          set_yellow_time = 1;
+          turn_on         = 1'b0;
+          turn_off        = 1'b0;
+          notransition    = 1'b0;
+          set_green_time  = 1'b0;
+          set_red_time    = 1'b0;
+          set_yellow_time = 1'b1;
         end
       default:
         begin
-          turn_on         = 0;
-          turn_off        = 0;
-          notransition    = 0;
-          set_green_time  = 0;
-          set_red_time    = 0;
-          set_yellow_time = 0;
+          turn_on         = 1'b0;
+          turn_off        = 1'b0;
+          notransition    = 1'b0;
+          set_green_time  = 1'b0;
+          set_red_time    = 1'b0;
+          set_yellow_time = 1'b0;
         end
     endcase
   end
