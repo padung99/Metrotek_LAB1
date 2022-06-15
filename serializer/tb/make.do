@@ -1,6 +1,6 @@
 vlib work
 
-vlog -sv ../serializer.sv
+vlog -sv ../rtl/serializer.sv
 vlog -sv serializer_tb.sv
 
 vsim serializer_tb

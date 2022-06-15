@@ -1,6 +1,6 @@
 vlib work
 
-vlog -sv ../debouncer.sv
+vlog -sv ../rtl/debouncer.sv
 vlog -sv debouncer_tb.sv
 
 vsim debouncer_tb
