@@ -96,7 +96,7 @@ always_comb
       
       RED_YELLOW_S:
         begin
-          if( clk_red_yellow == CLK_FREQ_RED_YELLOW - 16'd1)
+          if( clk_red_yellow == CLK_FREQ_RED_YELLOW - 16'd1 )
             next_state = GREEN_S;
           if( turn_off && cmd_valid_i )
             next_state = IDLE_S; 
@@ -116,7 +116,7 @@ always_comb
       
       BLINK_GREEN_S:
         begin
-          if( clk_blink_green == CLK_FREQ_BLINK_GREEN - 16'd1)
+          if( clk_blink_green == CLK_FREQ_BLINK_GREEN - 16'd1 )
             next_state = YELLOW_S;
           if( turn_off && cmd_valid_i )
             next_state = IDLE_S;
@@ -232,7 +232,7 @@ always_ff @( posedge clk_i )
     else if( state == RED_S )
       begin   
         timeout_red <= 1'b0;
-        if( clk_red == time_red*CLK_FREQ - 16'd2)
+        if( clk_red == time_red*CLK_FREQ - 16'd2 )
           begin
             clk_red     <= 16'd0;
             timeout_red <= 1'b1;
@@ -243,7 +243,7 @@ always_ff @( posedge clk_i )
       end
     else if( state == RED_YELLOW_S )
       begin
-        if( clk_red_yellow == CLK_FREQ_RED_YELLOW - 16'd1)
+        if( clk_red_yellow == CLK_FREQ_RED_YELLOW - 16'd1 )
           clk_red_yellow <= 16'd0;
         else
           clk_red_yellow <= clk_red_yellow + 16'd1;
@@ -251,7 +251,7 @@ always_ff @( posedge clk_i )
     else if( state == GREEN_S )
       begin
         timeout_green <= 1'b0;
-        if( clk_green == CLK_FREQ*time_green  - 16'd2)
+        if( clk_green == CLK_FREQ*time_green  - 16'd2 )
           begin
             clk_green     <= 16'd0;
             timeout_green <= 1'b1;
@@ -275,7 +275,7 @@ always_ff @( posedge clk_i )
     else if( state == YELLOW_S )
       begin  
          timeout_yellow <= 1'b0;
-        if( clk_yellow == time_yellow*CLK_FREQ - 16'd2)
+        if( clk_yellow == time_yellow*CLK_FREQ - 16'd2 )
           begin
             clk_yellow     <= 16'd0;
             timeout_yellow <= 1'b1;
