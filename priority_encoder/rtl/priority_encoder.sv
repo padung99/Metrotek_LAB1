@@ -11,15 +11,15 @@ module priority_encoder #
     output logic             deser_data_val_o 
 );
 
-logic   [$clog2(WIDTH)-1:0] r; //most left's index
-logic   [$clog2(WIDTH)-1:0] l; //most right's index
+integer           r; //most right's index
+integer           l; //most left's index
 
-logic   [WIDTH-1:0]         left;  
-logic   [WIDTH-1:0]         right; 
+logic [WIDTH-1:0] left;  
+logic [WIDTH-1:0] right; 
 
-logic                       valid_l;
-logic                       valid_r;
-logic                       valid;
+logic             valid_l;
+logic             valid_r;
+logic             valid;
 
 always_ff @( posedge clk_i )
   begin
@@ -59,7 +59,7 @@ always_comb
 always_comb
   begin
     //Find most left index '1'
-    l       = WIDTH-1;
+    l       = WIDTH - 1;
     valid_l = data_i[l];
     while( ( !valid_l ) && ( l != 0 ) )
       begin
