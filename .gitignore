@@ -22,6 +22,7 @@ deserializer/tb/vsim.wlf
 deserializer/tb/work/
 priority_encoder/quartus_prj/c5_pin_model_dump.txt
 priority_encoder/quartus_prj/db/
+priority_encoder/quartus_prj/priority_encoder.qws
 priority_encoder/quartus_prj/incremental_db/
 priority_encoder/quartus_prj/output_files/
 priority_encoder/tb/vsim.wlf

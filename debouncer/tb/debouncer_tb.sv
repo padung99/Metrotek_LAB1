@@ -1,15 +1,15 @@
 module debouncer_tb;
   
-parameter CLK_FREQ_MHZ_TB         = 50; //50 MHz
-parameter NOISE_PULSE             = 1000; //Number of noise clk
-parameter GLITCH_TIME_NS_TB       = ( 1.11*NOISE_PULSE*1000 )/CLK_FREQ_MHZ_TB;
+parameter CLK_FREQ_MHZ_TB   = 50; //50 MHz
+parameter NOISE_PULSE       = 1000; //Number of noise clk
+parameter GLITCH_TIME_NS_TB = ( 1.11*NOISE_PULSE*1000 )/CLK_FREQ_MHZ_TB;
 
-parameter PRESS_NUMBER = 30;
+parameter PRESS_NUMBER      = 30;
 
 logic key_i_tb;
 logic key_pressed_stb_o_tb;
 bit   clk_i_tb;
-int   cnt_pulse;
+
 int   cnt_1_duration;
 int   cnt_0_duration;
 int   cnt_signal;

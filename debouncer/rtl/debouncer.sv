@@ -20,9 +20,9 @@ logic                  stable;
 
 always_ff @( posedge clk_i )
   begin
-    key_prev          <= key_i; 
+    key_prev <= key_i; 
 
-    //key_i != key_prev: begin counting; cnt == CLK_DELAY: end counting ==> module will jump to this condition once
+    //key_i != key_prev && !start_cnt: begin counting; cnt == CLK_DELAY: end counting ==> module will jump to this condition once
 	 if( ( cnt == CLK_DELAY ) || ( key_i != key_prev && !start_cnt ) ) 
       begin
         cnt <= 0;  
@@ -33,9 +33,8 @@ always_ff @( posedge clk_i )
           end
         else
           begin
-            start_cnt         <= 0;
-            //key_pressed_stb_o <= key_i;
-            stable            <= 1;
+            start_cnt <= 0;
+            stable    <= 1;
           end
       end
     else
@@ -47,6 +46,5 @@ always_ff @( posedge clk_i )
          key_pressed_stb_o <= key_i;
       end
   end
-
 
 endmodule
