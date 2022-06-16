@@ -1,14 +1,13 @@
-module priority_encoder #
-(
-    parameter WIDTH = 5
+module priority_encoder #(
+  parameter WIDTH = 5
 ) (
-    input  logic             clk_i,
-    input  logic             srst_i,
-    input  logic [WIDTH-1:0] data_i,
-    input  logic             data_val_i,
-    output logic [WIDTH-1:0] data_left_o,
-    output logic [WIDTH-1:0] data_right_o,
-    output logic             deser_data_val_o 
+  input  logic             clk_i,
+  input  logic             srst_i,
+  input  logic [WIDTH-1:0] data_i,
+  input  logic             data_val_i,
+  output logic [WIDTH-1:0] data_left_o,
+  output logic [WIDTH-1:0] data_right_o,
+  output logic             deser_data_val_o 
 );
 
 integer           r; //most right's index

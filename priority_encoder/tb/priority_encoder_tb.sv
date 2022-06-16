@@ -60,7 +60,7 @@ for( int i = 0; i < MAX_PACKAGE_SENDED; i++ )
 
 endtask
 
-task send_pacakge( mailbox #( send_pkg ) pks,
+task send_pacakge( mailbox #( send_pkg )     pks,
                    mailbox #( data_receive ) pkr,
                    mailbox #( logic [15:0] ) data
                  );
