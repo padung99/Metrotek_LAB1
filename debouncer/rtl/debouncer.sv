@@ -34,7 +34,7 @@ always_ff @( posedge clk_i )
         else
           begin
             start_cnt         <= 0;
-            key_pressed_stb_o <= key_i;
+            //key_pressed_stb_o <= key_i;
             stable            <= 1;
           end
       end

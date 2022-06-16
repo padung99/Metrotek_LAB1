@@ -1,22 +1,18 @@
 module debouncer_tb;
   
-parameter CLK_FREQ_MHZ_TB         = 50; //MHz
-parameter KEY_PULSE_NUMBER        = 50; 
-parameter NOISE_PULSE             = 1000; //Number of clk
-parameter MAX_DELAY_1_PULSE_NOISE = 5;
-parameter CLK_DELAY_TB            =  NOISE_PULSE*MAX_DELAY_1_PULSE_NOISE*2; //Number of delay clk (2 delay states: pause1 for '1' and pause0 for '0')
-parameter GLITCH_TIME_NS_TB       = CLK_DELAY_TB*1000/CLK_FREQ_MHZ_TB; //
+parameter CLK_FREQ_MHZ_TB         = 50; //50 MHz
+parameter NOISE_PULSE             = 1000; //Number of noise clk
+parameter GLITCH_TIME_NS_TB       = ( 1.11*NOISE_PULSE*1000 )/CLK_FREQ_MHZ_TB;
 
-
-
-
-parameter PRESS_NUMBER = 20;
+parameter PRESS_NUMBER = 30;
 
 logic key_i_tb;
 logic key_pressed_stb_o_tb;
 bit   clk_i_tb;
 int   cnt_pulse;
-
+int   cnt_1_duration;
+int   cnt_0_duration;
+int   cnt_signal;
 
 initial
   forever
@@ -28,110 +24,123 @@ endclocking
 
 debouncer #(
   .CLK_FREQ_MHZ      ( CLK_FREQ_MHZ_TB      ),
-  .GLITCH_TIME_NS    ( GLITCH_TIME_NS_TB    ) // GLITCH_TIME_NS*(10^-9)/[(1/CLK_FREQ_MHZ)*(10^-6)]) = N clk
+  .GLITCH_TIME_NS    ( GLITCH_TIME_NS_TB    )
 ) deb_dut (
   .clk_i             ( clk_i_tb             ),
   .key_i             ( key_i_tb             ),
   .key_pressed_stb_o ( key_pressed_stb_o_tb )
 );
 
-task generate_press_signal();
-int random_glitch;
-int pause1, pause0;
+//Describing pressing key process with struct
+typedef struct {
+  int noise_before_stable;
+  int stable_time_1;
+  int noise_after_stable;
+  int stable_time_0;
+} press_key;
+
+mailbox #( press_key ) pkey = new();
+
+task gen_package ( mailbox #( press_key ) press,
+                   bit                    noise_signal = 1
+                 );
 for( int i = 0; i < PRESS_NUMBER; i++ )
   begin
-    pause0        = $urandom_range( 15,2 );
-    random_glitch = $urandom_range( 8, CLK_DELAY_TB + 2 );
-    for( int j = 0; j < random_glitch; j++ )
+    press_key new_pk;
+
+    //Generating noise signal
+    if( noise_signal )
       begin
-        key_i_tb <= 1;
-        ##1;
-        key_i_tb <= 0;
-        ##1;
+        new_pk.noise_before_stable = $urandom_range( 1.1*NOISE_PULSE, NOISE_PULSE );
+        new_pk.stable_time_1       = $urandom_range( 3*NOISE_PULSE, 5*NOISE_PULSE );
+        new_pk.noise_after_stable  = $urandom_range( 1.1*NOISE_PULSE, NOISE_PULSE );
+        new_pk.stable_time_0       = $urandom_range( 3*NOISE_PULSE, 5*NOISE_PULSE );
       end
-    ##pause0;
+    else
+      begin
+         //Generating clean signal
+        new_pk.noise_before_stable = 0;
+        new_pk.stable_time_1       = $urandom_range( 3*NOISE_PULSE, 5*NOISE_PULSE );
+        new_pk.noise_after_stable  = 0;
+        new_pk.stable_time_0       = $urandom_range( 3*NOISE_PULSE, 5*NOISE_PULSE );
+      end
+    press.put( new_pk );
   end
 endtask
 
-task generate_pulse_noise();
-int pause1, pause0, pause_key; 
+task send_signal( mailbox #( press_key ) press );
 
-for( int j = 0; j < KEY_PULSE_NUMBER; j++)
+while( press.num() != 0 )
   begin
-  pause_key = $urandom_range( 3*10*NOISE_PULSE, 6*10*NOISE_PULSE );
-    
-    //Generating noise
-    for( int i = 0; i < NOISE_PULSE; i++ )
-      begin
-        pause1   = $urandom_range(1,MAX_DELAY_1_PULSE_NOISE);
-        pause0   = $urandom_range(1,MAX_DELAY_1_PULSE_NOISE);
-        key_i_tb <= 1;
-        ##pause1;
-        key_i_tb <= 0;
-        ##pause0;
-      end
-    key_i_tb = 1;
-    ##pause_key;
+    press_key new_pk;
+    press.get( new_pk );
 
-    //Generating noise
-    for( int i = 0; i < NOISE_PULSE; i++ )
+    for( int i = 0; i < new_pk.noise_before_stable; i++ )
       begin
-        pause1   = $urandom_range( 1,MAX_DELAY_1_PULSE_NOISE );
-        pause0   = $urandom_range( 1,MAX_DELAY_1_PULSE_NOISE );
+        key_i_tb = $urandom_range( 1,0 );
+        ##1;
+        if( key_pressed_stb_o_tb )
+          cnt_1_duration++;
+        else
+          cnt_0_duration++;
+      end
+    
+    for( int i = 0; i < new_pk.stable_time_1; i++ )
+      begin
         key_i_tb = 1;
-        ##pause1;
-        key_i_tb = 0;
-        ##pause0;
+        ##1;
+        if( key_pressed_stb_o_tb )
+          cnt_1_duration++;
+        else
+          cnt_0_duration++;
       end
     
-    key_i_tb <= 0;
-    ##pause_key; 
-  end
-endtask
-
-task generate_pulse_without_noise();
-int pause1, pause0, pause_key; 
-
-for( int j = 0; j < KEY_PULSE_NUMBER; j++)
-  begin
-  pause_key  = $urandom_range( 3*10*NOISE_PULSE, 6*10*NOISE_PULSE );
-  key_i_tb  <= 1;
-  ##pause_key;
+    for( int i = 0; i < new_pk.noise_after_stable; i++ )
+      begin
+        key_i_tb = $urandom_range( 1,0 );
+        ##1;
+        if( key_pressed_stb_o_tb )
+          cnt_1_duration++;
+        else
+          cnt_0_duration++;
+      end
     
-  key_i_tb  <= 0;
-  ##pause_key;
+    for( int i = 0; i < new_pk.stable_time_0; i++ )
+      begin
+        key_i_tb = 0;
+        ##1;
+        if( key_pressed_stb_o_tb )
+          cnt_1_duration++;
+        else
+          cnt_0_duration++;
+      end
+      cnt_signal++;
   end
-endtask
-
-task test_reveive_pulse ();
-  repeat( KEY_PULSE_NUMBER - 1 )
-    begin
-      @( posedge key_pressed_stb_o_tb );
-      cnt_pulse++;
-    end
 
 endtask
 
 initial
   begin
-    $display("Test 1: Send clean signal");
-    $display("------Sending key signal-------");
-    fork
-      generate_pulse_without_noise();
-      test_reveive_pulse ();
-    join
-    $display("Test 1 done!!!!\n");
+    gen_package( pkey, 1 );
+    $display(" ###TEST 1: Sending noise signal ");
+    send_signal( pkey );
+    $display( "Average '1' duration: %f ", cnt_1_duration/PRESS_NUMBER );
+    $display( "Average '0' duration: %f ", cnt_0_duration/PRESS_NUMBER );
 
-    $display("Test 2: Send signal with noise");
-    $display("------Sending key signal-------");
-    fork
-      generate_pulse_noise();
-      test_reveive_pulse ();
-    join
+    $display( "\n");
+    cnt_1_duration = 0;
+    cnt_0_duration = 0;
+    
+    gen_package( pkey, 0 );
+    $display("###TEST 2: Sending clean signal");
+    send_signal( pkey );
+    cnt_1_duration = cnt_1_duration + NOISE_PULSE*2*PRESS_NUMBER;
+    cnt_0_duration = cnt_0_duration + NOISE_PULSE*2*PRESS_NUMBER;
+    $display( "Average '1' duration: %f ", cnt_1_duration/PRESS_NUMBER );
+    $display( "Average '0' duration: %f ", cnt_0_duration/PRESS_NUMBER );
 
-    $display("Test 2  done!!!!\n");
-    $display("Total signal received: %0d ", cnt_pulse);
-    $display("Testing done, check result on simulation screen!!!!");
+    $display( "Total signal sended: %0d, received: %0d", 2*PRESS_NUMBER, cnt_signal );
+    $display( "Testing done!!!!" );
     $stop();
   end
 

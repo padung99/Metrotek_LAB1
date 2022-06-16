@@ -36,10 +36,7 @@ always_comb
   begin
     cnt = ($clog2(WIDTH)+1)'(0);   
     for( int i = 0; i < WIDTH; i++ )
-      begin
-        if( data_i[i] == (WIDTH)'(1) )
-          cnt = cnt + ($clog2(WIDTH)+1)'(1);
-      end  
+      cnt = cnt + data_i[i];
   end
 
 endmodule
