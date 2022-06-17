@@ -10,7 +10,7 @@ module deserializer(
 logic [15:0] data_buf;
 logic [4:0]  bit_index; 
 logic        data_val;
-logic        delay_data_val_i;
+logic        delay_data_val;
 
 always_ff @( posedge clk_i )
   begin
@@ -30,15 +30,10 @@ always_ff @( posedge clk_i )
   end
 
 always_ff @( posedge clk_i )
-  begin
-    if( ( data_val_i ) )
-      delay_data_val_i <= 1;
-    else
-      delay_data_val_i <= 0;
-  end
+  delay_data_val <= data_val_i;
 
-assign data_val       =  bit_index[3:0] == 4'h0 ;
-assign deser_data_val_o =  data_val & delay_data_val_i;
+assign data_val         =  bit_index[3:0] == 4'h0 ;
+assign deser_data_val_o =  data_val && delay_data_val;
 assign deser_data_o     =  data_buf;
   
 endmodule

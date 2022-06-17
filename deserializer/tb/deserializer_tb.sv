@@ -24,11 +24,11 @@ endclocking
 typedef struct {
   logic data;
   logic valid;
-} package_sended;
+} package_sended_t;
 
-mailbox #( package_sended ) pk_sended   = new();
-mailbox #( logic [15:0]   ) pk_receive  = new();
-mailbox #( logic          ) data_sended = new();
+mailbox #( package_sended_t ) pk_sended   = new();
+mailbox #( logic [15:0] )     pk_receive  = new();
+mailbox #( logic [15:0] )     data_sended = new();
 
 deserializer deser_dut(
   .clk_i            ( clk_i_tb            ),
@@ -39,24 +39,26 @@ deserializer deser_dut(
   .deser_data_val_o ( deser_data_val_o_tb )
 );
 
-task gen_package( mailbox #( package_sended ) pk_gen );
+task gen_package( mailbox #( package_sended_t ) pk_gen );
 for( int i = 0; i < MAXIMUM_PACKAGE_TRANSFERED; i++ )
   begin
-    package_sended new_pk;
+    package_sended_t new_pk;
     new_pk.data  = $urandom_range( 0,1 );
     new_pk.valid = $urandom_range( 0,1 );
     pk_gen.put( new_pk ); 
   end
 endtask
 
-task send ( mailbox #( package_sended ) pks,
-            mailbox #( logic [15:0]   ) data_receive,
-            mailbox #( logic          ) bit_send
+task send ( mailbox #( package_sended_t ) pks,
+            mailbox #( logic [15:0] )     data_receive,
+            mailbox #( logic [15:0] )     bit_send
           );
+int cnt;
+logic [15:0] data_send;
 
 while( pks.num() != 0 )
   begin
-    package_sended new_pks;
+    package_sended_t new_pks;
     pks.get( new_pks );
     data_i_tb     = new_pks.data;
     data_val_i_tb = new_pks.valid;
@@ -65,48 +67,36 @@ while( pks.num() != 0 )
       data_receive.put( deser_data_o_tb );
 
     if( data_val_i_tb )
-      bit_send.put( data_i_tb );
+      begin
+        data_send[15-cnt] = data_i_tb;
+        cnt++;
+      end
 
+    if( cnt == 16 )
+      begin
+        bit_send.put( data_send );
+        cnt = 0;
+      end 
     ##1;
   end
 endtask
 
-task testing ( mailbox #( logic [15:0]   ) data_receive,
-               mailbox #( logic          ) bit_send
+task testing ( mailbox #( logic [15:0] ) data_receive,
+               mailbox #( logic [15:0] ) bit_send
              );
 
-int send;
-int receive;
-int cnt_send;
-int cnt_receive;
-send    = bit_send.num();
-receive = data_receive.num();
-
-$display( "###Sending" );
-while( bit_send.num() != 0 )
+while( data_receive.num() != 0 && bit_send.num() != 0 )
   begin
-    logic new_bit;
-    bit_send.get( new_bit );
-    $display( "[%0d] bit: %0b", 15 - cnt_send[3:0], new_bit );
-    if( cnt_send[3:0] == 15 )
-      $display( "\n" );
-    cnt_send++;
+    logic [15:0] new_bit_s;
+    logic [15:0] new_data_r;
+    data_receive.get( new_data_r );
+    bit_send.get( new_bit_s );
+    $display( "[%0d] data sended: %b, bit sended: %b", bit_send.num(), new_data_r, new_bit_s );
+    if( new_data_r != new_bit_s )
+      $display( "Error on receiving!!!\n" );
+    else
+      $display( "Data received correctly!!!\n" );
   end
-$display("###Sending done");
-$display("Total bits sended: %0d",  send );
-$display("Unused bits: %0d", send - receive*16); 
-$display("\n");
-
-$display( "###Receiving" );
-while( data_receive.num() != 0 )
-  begin
-    logic [15:0] new_data;
-    data_receive.get( new_data );
-    $display( "[%0d] data_receive: %0b", data_receive.num(), new_data );
-  end
-$display("###Receiving done");
-$display( "Total data received: %0d", receive );
-
 endtask
 
 initial
@@ -114,15 +104,12 @@ initial
     srst_i_tb <= 1;
     ##1;
     srst_i_tb <= 0;
-  end
 
-initial
-  begin
     gen_package( pk_sended );
     send( pk_sended, pk_receive, data_sended );
     testing( pk_receive, data_sended );
       
-    $display("Testing done");
+    $display("#####Testing done!!!");
     $stop();
   end
 endmodule
