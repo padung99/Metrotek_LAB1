@@ -103,7 +103,7 @@ while( ( data.num() != 0 ) && ( pkr.num() != 0 ) )
         right_tmp[i] = new_data[i] & new_pkr.right[i];
       end
 
-    $display( "data_i: %b", new_data );  
+    $display( "[%0d] data_i: %b", data.num(), new_data );  
     $display( "left_o: %b, right_o: %b", new_pkr.left, new_pkr.right );
     if( left_tmp == new_pkr.left && right_tmp == new_pkr.right )
       $display( "###Data received correctly!!!\n");
