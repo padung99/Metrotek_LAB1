@@ -39,16 +39,16 @@ typedef struct {
   logic [15:0] data;
   logic [3:0]  mod;
   logic        valid;
-} package_send;
+} package_send_t;
 
-mailbox #( package_send ) send_pk         = new();
-mailbox #( package_send ) data_send_valid = new();
-mailbox #( logic        ) data_receive    = new();
+mailbox #( package_send_t ) send_pk         = new();
+mailbox #( logic [15:0] )   data_send_valid = new();
+mailbox #( logic [15:0] )   data_receive    = new();
 
-task gen_package( mailbox #( package_send ) pk );
+task gen_package( mailbox #( package_send_t ) pk );
   for( int i = 0; i < NUMBER_OF_PACKET; i++ )
     begin
-      package_send new_pk;
+      package_send_t new_pk;
       new_pk.data  = $urandom_range( 2**16-1,0 );
       new_pk.mod   = $urandom_range( 16,0 );
       new_pk.valid = $urandom_range( 1, 0);
@@ -56,59 +56,77 @@ task gen_package( mailbox #( package_send ) pk );
     end
 endtask
 
-task send_package( mailbox #( package_send ) spk,
-                   mailbox #( package_send ) data_sended,
-                   mailbox #( logic        ) data_receive
+task send_package( mailbox #( package_send_t ) spk,
+                   mailbox #( logic [15:0]   ) data_sended,
+                   mailbox #( logic [15:0]   ) data_receive
                  );
-  
+  int cnt;
   while( spk.num() != 0 )
     begin
-      package_send new_spk;
+      package_send_t new_spk;
+      logic [15:0]   new_bit_r;
+      logic [4:0]    tmp_mod;
       spk.get( new_spk );
       data_i_tb     = new_spk.data;
       data_mod_i_tb = new_spk.mod;
       data_val_i_tb = new_spk.valid;
 
-      //save valod input data to mailbox
+      //save valid input data to mailbox
       if( !ser_data_val_o_tb && data_val_i_tb && !busy_o_tb )
-        data_sended.put( new_spk );
-        
-      //save valid output bits to mailbox
-      if( busy_o_tb )  
-        data_receive.put( ser_data_o_tb );
+        begin     
+          if( data_mod_i_tb > 2  )
+            data_sended.put( new_spk.data >> 16 - data_mod_i_tb );
+          else
+            begin
+              if( data_mod_i_tb == 1 || data_mod_i_tb == 2 )
+                data_sended.put( 16'd0 );
+
+              if( data_mod_i_tb == 0 )
+                data_sended.put( new_spk.data  );
+            end
+          
+          //Set all invalid bit to '0'
+          for( int i = 15; i >= cnt; i-- )
+            new_bit_r[i] = 0;      
+          data_receive.put( new_bit_r );
+
+          tmp_mod = ( data_mod_i_tb == 4'd0 ) ? 5'd16 : data_mod_i_tb;
+          cnt = 0;
+        end
+      
+      //combine all valid output data to an array for comparison with input data
+      if( ser_data_val_o_tb )  
+        begin
+          new_bit_r[tmp_mod-1 - cnt] = ser_data_o_tb;
+          cnt++;
+        end
       ##1; 
     end
 endtask
 
-task testing_package( mailbox #( package_send ) data_sended,
-                      mailbox #( logic        ) data_receive         
+task testing_package( mailbox #( logic [15:0] ) data_sended,
+                      mailbox #( logic [15:0] ) data_receive         
                     );
 
 int send, receive;
 int cnt;
+logic [15:0] new_data_r;
 
-send    = data_sended.num();
-receive = data_receive.num();
+//Throw out 1-st data in mailbox because it's trash data
+data_receive.get( new_data_r );
 
-while( data_sended.num() != 0 )
+while( data_sended.num() != 0 && data_receive.num() != 0 )
   begin
-    package_send tmp_pk;
-    data_sended.get(tmp_pk);
-    $display( "[%0d] data_i: %0b, data_mod_i: %0d", data_sended.num(), tmp_pk.data, tmp_pk.mod );
+    logic [15:0] new_pks;
+    data_receive.get( new_data_r );
+    data_sended.get( new_pks );
+    
+    $display( "data sended: %b, data received: %b ", new_pks, new_data_r );
+    if( new_pks != new_data_r )
+      $display( "Error on receiving!!!\n" );
+    else
+      $display( "Data received correctly!!!\n" );
   end
-$display( "###Total valid data sended: %0d\n", send );
-
-$display( "###Total valid bit received###");
-while( data_receive.num() != 0 )
-  begin
-    logic tmp_ser_data;
-    data_receive.get( tmp_ser_data );
-    $display( "ser_data_o: %0b", tmp_ser_data );
-    if( cnt[3:0] == 15 )
-      $display("\n");
-    cnt++;
-  end
-$display("-----------------Testing done--------------");
 endtask
 
 initial
@@ -116,15 +134,13 @@ initial
     srst_i_tb     <= 1;
     ##1;
     srst_i_tb     <= 0;
-  end
 
-initial
-  begin
     gen_package  ( send_pk );
 
     send_package ( send_pk, data_send_valid, data_receive );
 
     testing_package( data_send_valid, data_receive );
+    $display( "Test done!!!" );
     $stop();
   
   end
