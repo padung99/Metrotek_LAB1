@@ -36,7 +36,7 @@ always_ff @( posedge clk_i )
             start_cnt <= 0;
             stable    <= 1;
           end
-      end
+      end 
     else
       begin
         if( start_cnt )

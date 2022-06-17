@@ -10,7 +10,7 @@ logic [WIDTH_TB-1:0] data_i_tb;
 logic                data_val_i_tb;
 logic [WIDTH_TB-1:0] data_left_o_tb;
 logic [WIDTH_TB-1:0] data_right_o_tb;
-logic                deser_data_val_o_tb;
+logic                data_val_o_tb;
 
 initial 
   forever
@@ -21,38 +21,38 @@ default clocking cb
 endclocking
 
 priority_encoder#(  
-  .WIDTH            ( WIDTH_TB            )
+  .WIDTH        ( WIDTH_TB        )
 ) dut (
-  .clk_i            ( clk_i_tb            ),
-  .srst_i           ( srst_i_tb           ),
-  .data_i           ( data_i_tb           ),
-  .data_val_i       ( data_val_i_tb       ),
-  .data_left_o      ( data_left_o_tb      ),
-  .data_right_o     ( data_right_o_tb     ),
-  .deser_data_val_o ( deser_data_val_o_tb ) 
+  .clk_i        ( clk_i_tb        ),
+  .srst_i       ( srst_i_tb       ),
+  .data_i       ( data_i_tb       ),
+  .data_val_i   ( data_val_i_tb   ),
+  .data_left_o  ( data_left_o_tb  ),
+  .data_right_o ( data_right_o_tb ),
+  .data_val_o   ( data_val_o_tb   ) 
 );
 
 //create package to send
 typedef struct {
   logic [WIDTH_TB-1:0] data;
   logic                valid;
-}send_pkg; 
+}send_pkg_t; 
 
 //create struct from data_left_ and data_right_o  
 typedef struct {
   logic [WIDTH_TB-1:0] left;
   logic [WIDTH_TB-1:0] right;
-}data_receive;
+}data_receive_t;
 
-mailbox #( send_pkg     ) pk_sended  = new();
-mailbox #( data_receive ) pk_receive = new();
-mailbox #( logic [15:0] ) data_valid = new();
+mailbox #( send_pkg_t )           pk_sended  = new();
+mailbox #( data_receive_t )       pk_receive = new();
+mailbox #( logic [WIDTH_TB-1:0] ) data_valid = new();
 
-task gen_package ( mailbox #( send_pkg ) pk_s );
+task gen_package ( mailbox #( send_pkg_t ) pk_s );
 
 for( int i = 0; i < MAX_PACKAGE_SENDED; i++ ) 
   begin
-    send_pkg new_pks;
+    send_pkg_t new_pks;
     new_pks.data  = $urandom_range( 2**WIDTH_TB-1,0 );
     new_pks.valid = $urandom_range( 1,0 );
     pk_s.put( new_pks );
@@ -60,23 +60,23 @@ for( int i = 0; i < MAX_PACKAGE_SENDED; i++ )
 
 endtask
 
-task send_pacakge( mailbox #( send_pkg )     pks,
-                   mailbox #( data_receive ) pkr,
-                   mailbox #( logic [15:0] ) data
+task send_pacakge( mailbox #( send_pkg_t )           pks,
+                   mailbox #( data_receive_t )       pkr,
+                   mailbox #( logic [WIDTH_TB-1:0] ) data
                  );
 
 while( pks.num() != 0 )
   begin
-    send_pkg new_pks;
+    send_pkg_t new_pks;
     pks.get( new_pks );
     data_i_tb     = new_pks.data;
     data_val_i_tb = new_pks.valid;
     if( data_val_i_tb )
       data.put( data_i_tb );
     
-    if( deser_data_val_o_tb )
+    if( data_val_o_tb )
       begin
-        data_receive new_receive;
+        data_receive_t new_receive;
         new_receive.left  = data_left_o_tb;
         new_receive.right = data_right_o_tb;
         pkr.put( new_receive );
@@ -85,35 +85,37 @@ while( pks.num() != 0 )
   end
 endtask
 
-task testing( mailbox #( data_receive ) pkr,
-              mailbox #( logic [15:0] ) data
+task testing( mailbox #( data_receive_t )       pkr,
+              mailbox #( logic [WIDTH_TB-1:0] ) data
             );
-
-int send_data;
-int receive_data;
-
-send_data    = data.num();
-receive_data = pkr.num();
-
-$display("###Sending");
-while(  data.num() != 0 )
+while( ( data.num() != 0 ) && ( pkr.num() != 0 ) )
   begin
-    logic [15:0] new_data;
+    logic [WIDTH_TB-1:0] new_data;
+    logic [WIDTH_TB-1:0] left_tmp;
+    logic [WIDTH_TB-1:0] right_tmp;
+    data_receive_t       new_pkr;
+    pkr.get( new_pkr );
     data.get( new_data );
-    $display("[%0d] data_i: %0b", data.num(), new_data );
-  end
-$display( "###Sending done" );
-$display("----------Total valid data sended: %d\n", send_data );
 
-$display( "###Receiving" );
-while( pkr.num() != 0 )
-  begin
-    data_receive new_receive;
-    pkr.get( new_receive );
-    $display("[%0d] left: %b, right: %b", pkr.num(), new_receive.left, new_receive.right );
+    for( int i = 0; i < WIDTH_TB; i++ )
+      begin
+        left_tmp[i]  = new_data[i] & new_pkr.left[i];
+        right_tmp[i] = new_data[i] & new_pkr.right[i];
+      end
+
+    $display( "data_i: %b", new_data );  
+    $display( "left_o: %b, right_o: %b", new_pkr.left, new_pkr.right );
+    if( left_tmp == new_pkr.left && right_tmp == new_pkr.right )
+      $display( "###Data received correctly!!!\n");
+    else
+      begin
+        if( left_tmp != new_pkr.left )
+          $display( "Error on left_o!!!" );
+        if( right_tmp != new_pkr.right )
+          $display( "Error on right_o!!!" );
+      end
+    
   end
-$display( "Receiving done" );
-$display( "---------Total valid data received( left = right ): %0d ", receive_data );
 endtask
 
 initial
@@ -129,7 +131,7 @@ initial
       send_pacakge( pk_sended, pk_receive, data_valid );
       testing( pk_receive, data_valid );
 
-      $display("-------Test done, check result on simulation screen!!!--------");
+      $display("-------Test done!!!--------");
       $stop();
     end
 

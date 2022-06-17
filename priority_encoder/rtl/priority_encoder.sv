@@ -1,4 +1,5 @@
-module priority_encoder #(
+module priority_encoder #
+(
   parameter WIDTH = 5
 ) (
   input  logic             clk_i,
@@ -7,74 +8,63 @@ module priority_encoder #(
   input  logic             data_val_i,
   output logic [WIDTH-1:0] data_left_o,
   output logic [WIDTH-1:0] data_right_o,
-  output logic             deser_data_val_o 
+  output logic             data_val_o
 );
 
-integer           r; //most right's index
-integer           l; //most left's index
-
-logic [WIDTH-1:0] left;  
-logic [WIDTH-1:0] right; 
-
-logic             valid_l;
-logic             valid_r;
-logic             valid;
+integer             r;
+integer             l;
+logic   [WIDTH-1:0] left;  //most left's index
+logic   [WIDTH-1:0] right; //most right's index
 
 always_ff @( posedge clk_i )
   begin
     if( srst_i )
       begin
-        valid        <= 0;
-        data_left_o  <= 0;
-        data_right_o <= 0;
+        data_val_o <= 0;
+        right      <= 0;
+        left       <= 0;
       end
     else
-      begin              
-        valid        <= data_val_i && valid_r && valid_l && ( r != l );
-        data_left_o  <= left;
-        data_right_o <= right;
+      begin
+        if( data_val_i )               
+          data_val_o <= 1;
+        else
+          data_val_o <= 0;
       end
   end
 
-always_comb
+always_ff @( posedge clk_i )
   begin
-    //Find most right index '1'
-    r       = 0;
-    valid_r = data_i[r];
-    while( ( !valid_r ) && ( r != WIDTH - 1 ) )
-      begin
-        r       = r + 1;
-        valid_r = data_i[r];
-      end
+    //Find most left's index of "bit 1" in a bit stream
+    for( l = WIDTH - 1; l >= 0; l-- )
+      if( data_i[l] ) //left
+        break;
 
-    //Set right output, only right[r] = 1, others = 0;
-    for(int i = 0; i < WIDTH; i++)
+      //Set left output 
+      for( int i = 0; i < WIDTH; i++ )
+        if( i != l )
+          left[i]  <=  0;
+        else
+          left[i]  <=  1;
+  end
+
+always_ff @( posedge clk_i )
+  begin
+    //Find most right's index of "bit 1" in a bit stream
+    for( r = 0; r < WIDTH; r++)
+      if( data_i[r] ) //right
+          break;
+
+    //Set right output
+    for( int i = 0; i < WIDTH; i++ )
       if( i != r )
-        right[i]  =  0;
+        right[i]  <=  0;
       else
-        right[i]  =  1;
+        right[i]  <=  1;
+
   end
 
-always_comb
-  begin
-    //Find most left index '1'
-    l       = WIDTH - 1;
-    valid_l = data_i[l];
-    while( ( !valid_l ) && ( l != 0 ) )
-      begin
-        l       = l - 1;
-        valid_l = data_i[l];
-      end
-    
-    //Set left output, only left[l] = 1, others = 0;
-    for(int i = 0; i < WIDTH; i++)
-      if( i != l )
-        left[i]  =  0;
-      else
-        left[i]  =  1;
-        
-  end
-
-assign deser_data_val_o = valid;
+assign data_left_o  = left;
+assign data_right_o = right;
 
 endmodule
