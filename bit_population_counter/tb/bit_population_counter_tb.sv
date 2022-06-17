@@ -1,7 +1,7 @@
 module bit_population_counter_tb;
 
 parameter WIDTH_TB           = 16;
-parameter MAX_PACKAGE_SENDED = 30;
+parameter MAX_package_sended_t = 30;
 parameter WIDTH_O            = $clog2(WIDTH_TB) + 1;
 
 logic                          srst_i_tb;
@@ -34,30 +34,36 @@ bit_population_counter#(
 typedef struct {
   logic [15:0] data;
   logic        valid;
-} package_sended;
+} package_sended_t;
 
-mailbox #( package_sended )      pk_send     = new();
+typedef struct {
+  logic [15:0]        data;
+  logic [WIDTH_O-1:0] cnt_bit_1;
+} data_send_t;
+
+mailbox #( package_sended_t )    pk_send     = new();
 mailbox #( logic [WIDTH_O-1:0] ) ouput_data  = new();
-mailbox #( logic [15:0] )        data_sended = new();
+mailbox #( data_send_t )         data_sended = new();
 
-task gen_package ( mailbox #( package_sended ) pks );
-for( int i = 0; i < MAX_PACKAGE_SENDED; i++ )
+task gen_package ( mailbox #( package_sended_t ) pks );
+for( int i = 0; i < MAX_package_sended_t; i++ )
   begin
-    package_sended new_pk;
+    package_sended_t new_pk;
     new_pk.data  = $urandom_range( 2**16-1, 0 );
     new_pk.valid = $urandom_range( 1,0 );
     pks.put( new_pk );        
   end
 endtask
 
-task send_pk( mailbox #( package_sended )      pks,
+task send_pk( mailbox #( package_sended_t )    pks,
               mailbox #( logic [WIDTH_O-1:0] ) data_o,
-              mailbox #( logic [15:0] )        sdata
+              mailbox #( data_send_t )         sdata
             );
-
+logic [WIDTH_O-1:0] cnt;
 while( pks.num() != 0 )
   begin
-    package_sended new_pks;
+    package_sended_t new_pks;
+    data_send_t      new_dts;
     pks.get( new_pks );
     data_i_tb     = new_pks.data;
     data_val_i_tb = new_pks.valid;
@@ -66,56 +72,49 @@ while( pks.num() != 0 )
       data_o.put( data_o_tb );
     
     if( data_val_i_tb )
-      sdata.put( data_i_tb );
-
+      begin
+        cnt = (WIDTH_O)'(0);
+        for( int i = 0; i < WIDTH_TB; i++ )
+          begin
+            cnt = cnt + data_i_tb[i]; 
+          end
+        new_dts.cnt_bit_1 = cnt;
+        new_dts.data      = data_i_tb;
+        sdata.put( new_dts );
+      end
     ##1;
   end
 endtask
 
 task testing ( mailbox #( logic [WIDTH_O-1:0] ) data_o,
-               mailbox #( logic [15:0] )        sdata
+               mailbox #( data_send_t )         sdata
              );
 
-int send;
-int receive;
-int cnt_send;
-int cnt_receive;
-send    = sdata.num();
-receive = data_o.num();
-
-$display( "###Sending" );
-while( sdata.num() != 0 )
+while( sdata.num() != 0 && data_o.num() != 0 )
   begin
-    logic [15:0] new_sdata;
-    sdata.get( new_sdata );
-    $display( "[%0d] data_i valid: %0b", sdata.num(), new_sdata );
+    logic [WIDTH_O-1:0] new_data_out;
+    data_send_t         new_data_s;
+    data_o.get( new_data_out );
+    sdata.get( new_data_s );
+    $display( "[%0d] data_i: %b", sdata.num(), new_data_s.data );
+    if( new_data_s.cnt_bit_1 != new_data_out )
+      begin
+        $display("Error on counting!!!!\n");
+        $display("Input: %0d, output: %0d", new_data_out, new_data_s.cnt_bit_1 );
+      end
+    else
+      begin
+        $display("Input: %0d, output: %0d", new_data_out, new_data_s.cnt_bit_1 );
+        $display( "Module runs correctly!!!\n" );
+      end
   end
-
-$display("###Sending done");
-$display("Total valid data sended: %0d",  send );
-$display("\n");
-
-$display( "###Receiving" );
-
-while( data_o.num() != 0 )
-  begin
-    logic [WIDTH_O-1:0] new_odata;
-    data_o.get( new_odata );
-    $display( "[%0d] data_o: %0d", data_o.num(), new_odata );
-  end
-$display("###Receiving done");
-$display( "Total data received: %0d", receive );
 endtask
 
 initial
-  begin
+  begin 
     srst_i_tb <= 1;
     ##1;
-    srst_i_tb <= 0;
-  end
-
-initial
-  begin   
+    srst_i_tb <= 0;  
     gen_package( pk_send );
     send_pk( pk_send, ouput_data, data_sended );
     testing( ouput_data, data_sended );
