@@ -37,16 +37,16 @@ typedef struct {
   int stable_time_1;
   int noise_after_stable;
   int stable_time_0;
-} press_key;
+} press_key_t;
 
-mailbox #( press_key ) pkey = new();
+mailbox #( press_key_t ) pkey = new();
 
-task gen_package ( mailbox #( press_key ) press,
+task gen_package ( mailbox #( press_key_t ) press,
                    bit                    noise_signal = 1
                  );
 for( int i = 0; i < PRESS_NUMBER; i++ )
   begin
-    press_key new_pk;
+    press_key_t new_pk;
 
     //Generating noise signal
     if( noise_signal )
@@ -68,11 +68,11 @@ for( int i = 0; i < PRESS_NUMBER; i++ )
   end
 endtask
 
-task send_signal( mailbox #( press_key ) press );
+task send_signal( mailbox #( press_key_t ) press );
 
 while( press.num() != 0 )
   begin
-    press_key new_pk;
+    press_key_t new_pk;
     press.get( new_pk );
 
     for( int i = 0; i < new_pk.noise_before_stable; i++ )
