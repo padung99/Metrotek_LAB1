@@ -32,13 +32,13 @@ bit_population_counter#(
 );
 
 typedef struct {
-  logic [15:0] data;
-  logic        valid;
+  logic [WIDTH_TB-1:0] data;
+  logic                valid;
 } package_sended_t;
 
 typedef struct {
-  logic [15:0]        data;
-  logic [WIDTH_O-1:0] cnt_bit_1;
+  logic [WIDTH_TB-1:0] data;
+  logic [WIDTH_O-1:0]  cnt_bit_1;
 } data_send_t;
 
 mailbox #( package_sended_t )    pk_send     = new();
