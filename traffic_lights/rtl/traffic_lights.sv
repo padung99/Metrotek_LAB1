@@ -72,6 +72,7 @@ always_ff @( posedge clk_i )
   end
 
 //State control
+//When traffic light is on standard mode, traffic light can only change to turn off (IDLE) mode and "notransition" mode
 always_comb
   begin
     next_state = state;
@@ -109,7 +110,7 @@ always_comb
           if( timeout_green ) 
             next_state = BLINK_GREEN_S;
           if( turn_off && cmd_valid_i )
-            next_state = IDLE_S;  
+            next_state = IDLE_S;
           if( notransition && cmd_valid_i )
             next_state = NOTRANSITION_S;
         end
@@ -293,9 +294,11 @@ always_ff @( posedge clk_i )
       end   
   end
 
+
 always_ff @( posedge clk_i )
   begin
-    if( cmd_valid_i )
+    //Setting time available only on "notransition" mode
+    if( cmd_valid_i && state == NOTRANSITION_S )
       begin
         if( set_green_time )
           time_green  <= cmd_data_i;
