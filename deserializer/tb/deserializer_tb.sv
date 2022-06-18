@@ -91,7 +91,7 @@ while( data_receive.num() != 0 && bit_send.num() != 0 )
     logic [15:0] new_data_r;
     data_receive.get( new_data_r );
     bit_send.get( new_bit_s );
-    $display( "[%0d] data sended: %b, bit sended: %b", bit_send.num(), new_data_r, new_bit_s );
+    $display( "[%0d] data received: %b, bit sended: %b", bit_send.num(), new_data_r, new_bit_s );
     if( new_data_r != new_bit_s )
       $display( "Error on receiving!!!\n" );
     else
