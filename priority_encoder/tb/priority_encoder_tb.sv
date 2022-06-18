@@ -143,7 +143,7 @@ while( ( data.num() != 0 ) && ( pkr.num() != 0 ) )
 
         if( i == new_lr_send.l && new_pkr.left[i] == new_lr_send.data[i] )
           $display( "left received: %b, left correct!!\n", new_pkr.left );
-        else if( i == new_lr_send.l && new_pkr.left[i] != 1 )
+        else if( i == new_lr_send.l && new_pkr.left[i] != new_lr_send.data[i] )
           $display( "left received: %b, left error!!\n", new_pkr.left );
         
       end
