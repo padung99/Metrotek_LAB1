@@ -1,12 +1,12 @@
 module traffic_lights #(
   //frequency = 2kHz / period = 0.5 ms
-  parameter CLK_FREQ              = 2,
+  parameter CLK_FREQ          = 2,
 
   //light time (ms)
-  parameter TIME_RED_YELLOW       = 10,
-  parameter BLINK_TIME_GREEN      = 15,
+  parameter TIME_RED_YELLOW   = 10,
+  parameter BLINK_TIME_GREEN  = 15,
 
-  parameter HALF_PERIOD_BLINK     = 3 //max period = 2000 ms = 2s ==> max half period = 1000ms = 1s
+  parameter HALF_PERIOD_BLINK = 3 //max period = 2000 ms = 2s ==> max half period = 1000ms = 1s
 ) (
   input  logic        clk_i,
   input  logic        srst_i,
