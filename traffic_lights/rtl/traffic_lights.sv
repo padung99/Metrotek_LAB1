@@ -6,7 +6,7 @@ module traffic_lights #(
   parameter TIME_RED_YELLOW       = 10,
   parameter BLINK_TIME_GREEN      = 15,
 
-  parameter HALF_PERIOD_BLINK     = 3 //max period = 1000 ms = 1s ==> max half period = 500ms = 0.5s
+  parameter HALF_PERIOD_BLINK     = 3 //max period = 2000 ms = 2s ==> max half period = 1000ms = 1s
 ) (
   input  logic        clk_i,
   input  logic        srst_i,
@@ -39,9 +39,9 @@ logic [15:0] clk_green;
 logic [15:0] clk_red_yellow;
 logic [15:0] clk_blink_green;
 
-//Maximum blink period 1000 ms  = 1s ==> half period = 500ms ==> 9 bit
-logic [8:0] cnt_blink_yellow;
-logic [8:0] cnt_blink_green;
+//Maximum max half "blink period" 1000 ms  = 1s ==> 10bit
+logic [9:0] cnt_blink_yellow;
+logic [9:0] cnt_blink_green;
 
 logic        timeout_yellow;
 logic        timeout_green;
@@ -188,7 +188,7 @@ always_comb
           yellow_o = 1'b0;
 
           //blink green
-          if( cnt_blink_green == PERIOD_BLINK*CLK_FREQ - 9'd1 )
+          if( cnt_blink_green == PERIOD_BLINK*CLK_FREQ - 10'd1 )
             green_o  = !green_o;
         end
       
@@ -205,17 +205,18 @@ always_comb
           green_o  = 1'b0;
 
           //blink yellow
-          if( cnt_blink_yellow == PERIOD_BLINK*CLK_FREQ - 9'd1 )
+          if( cnt_blink_yellow == PERIOD_BLINK*CLK_FREQ - 10'd1 )
             yellow_o  = !yellow_o;
         end        
     endcase
   end
 
-//Timer control
+//Timer control --> use "case" instead of "if-else" to avoid "Timing analyzer warning"
 always_ff @( posedge clk_i )
   begin
-    if( state == IDLE_S )
-      begin
+    case( state )
+      IDLE_S:
+        begin
         clk_red          <= 16'd0;
         clk_red_yellow   <= 16'd0; 
         clk_green        <= 16'd0;
@@ -224,33 +225,34 @@ always_ff @( posedge clk_i )
         timeout_green    <= 1'b0;
         timeout_red      <= 1'b0;
         timeout_yellow   <= 1'b0;
-        cnt_blink_green  <= 9'h1FF; //111111111
-        cnt_blink_yellow <= 9'h1FF;
+        cnt_blink_green  <= 10'h3FF; //11 1111 1111
+        cnt_blink_yellow <= 10'h3FF;
         green_prev       <= green_o;
-        yellow_prev      <= yellow_o;
-
-      end
-    else if( state == RED_S )
-      begin   
-        timeout_red <= 1'b0;
-        if( clk_red == time_red*CLK_FREQ - 16'd2 )
-          begin
-            clk_red     <= 16'd0;
-            timeout_red <= 1'b1;
-          end
-        else if( !timeout_red )
-          clk_red <= clk_red + 16'd1;
-            
-      end
-    else if( state == RED_YELLOW_S )
-      begin
-        if( clk_red_yellow == CLK_FREQ_RED_YELLOW - 16'd1 )
-          clk_red_yellow <= 16'd0;
-        else
-          clk_red_yellow <= clk_red_yellow + 16'd1;
-      end
-    else if( state == GREEN_S )
-      begin
+        yellow_prev      <= yellow_o;         
+        end 
+      
+      RED_S:
+        begin
+          timeout_red <= 1'b0;
+          if( clk_red == time_red*CLK_FREQ - 16'd2 )
+            begin
+              clk_red     <= 16'd0;
+              timeout_red <= 1'b1;
+            end
+          else if( !timeout_red )
+            clk_red <= clk_red + 16'd1;          
+        end
+      
+      RED_YELLOW_S:
+        begin
+          if( clk_red_yellow == CLK_FREQ_RED_YELLOW - 16'd1 )
+            clk_red_yellow <= 16'd0;
+          else
+            clk_red_yellow <= clk_red_yellow + 16'd1;
+        end
+      
+      GREEN_S:
+        begin
         timeout_green <= 1'b0;
         if( clk_green == CLK_FREQ*time_green  - 16'd2 )
           begin
@@ -258,47 +260,50 @@ always_ff @( posedge clk_i )
             timeout_green <= 1'b1;
           end
         else if( !timeout_green )
-          clk_green <= clk_green + 16'd1;  
+          clk_green <= clk_green + 16'd1;
       end
-    else  if( state == BLINK_GREEN_S )
-      begin   
-        green_prev <= green_o;
-        if( clk_blink_green == CLK_FREQ_BLINK_GREEN - 16'd1 )
-          clk_blink_green <= 16'd0;
-        else if( cnt_blink_green == PERIOD_BLINK*CLK_FREQ - 9'd1 )
-          begin
-            cnt_blink_green <= 9'd0;
-            clk_blink_green <= clk_blink_green + 16'd1;
-          end
-        else
-          begin
-            clk_blink_green <= clk_blink_green + 16'd1;
-            cnt_blink_green <= cnt_blink_green + 9'd1;
-          end
-      end
-    else if( state == YELLOW_S )
-      begin  
-         cnt_blink_green <= 9'h1FF;
-         timeout_yellow  <= 1'b0;
-         green_prev      <= 0;
-        if( clk_yellow == time_yellow*CLK_FREQ - 16'd2 )
-          begin
-            clk_yellow     <= 16'd0;
-            timeout_yellow <= 1'b1;
-          end
-        else if( !timeout_yellow )
-          clk_yellow <= clk_yellow + 16'd1;    
-      end
-    else if( state == NOTRANSITION_S )
-      begin
-        yellow_prev <= yellow_o;
-        if( cnt_blink_yellow == PERIOD_BLINK*CLK_FREQ - 9'd1 )
-          cnt_blink_yellow <= 9'd0;
-        else
-          cnt_blink_yellow <= cnt_blink_yellow + 9'd1;
-      end   
-  end
 
+      BLINK_GREEN_S:
+        begin
+          green_prev <= green_o;
+          if( clk_blink_green == CLK_FREQ_BLINK_GREEN - 16'd1 )
+            clk_blink_green <= 16'd0;
+          else if( cnt_blink_green == PERIOD_BLINK*CLK_FREQ - 10'd1 )
+            begin
+              cnt_blink_green <= 10'd0;
+              clk_blink_green <= clk_blink_green + 16'd1;
+            end
+          else
+            begin
+              clk_blink_green <= clk_blink_green + 16'd1;
+              cnt_blink_green <= cnt_blink_green + 10'd1;
+            end        
+        end
+     
+      YELLOW_S:
+        begin
+          cnt_blink_green <= 10'h3FF;
+          timeout_yellow  <= 1'b0;
+          green_prev      <= 0; //Reset green_prev
+          if( clk_yellow == time_yellow*CLK_FREQ - 16'd2 )
+            begin
+              clk_yellow     <= 16'd0;
+              timeout_yellow <= 1'b1;
+            end
+          else if( !timeout_yellow )
+            clk_yellow <= clk_yellow + 16'd1; 
+        end
+      
+      NOTRANSITION_S:
+        begin
+          yellow_prev <= yellow_o;
+          if( cnt_blink_yellow == PERIOD_BLINK*CLK_FREQ - 10'd1 )
+            cnt_blink_yellow <= 10'd0;
+          else
+            cnt_blink_yellow <= cnt_blink_yellow + 10'd1;    
+        end
+    endcase
+  end
 
 always_ff @( posedge clk_i )
   begin
