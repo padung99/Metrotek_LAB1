@@ -224,8 +224,8 @@ always_ff @( posedge clk_i )
         timeout_green    <= 1'b0;
         timeout_red      <= 1'b0;
         timeout_yellow   <= 1'b0;
-        cnt_blink_green  <= 9'd0;
-        cnt_blink_yellow <= 9'd0;
+        cnt_blink_green  <= 9'h1FF; //111111111
+        cnt_blink_yellow <= 9'h1FF;
         green_prev       <= green_o;
         yellow_prev      <= yellow_o;
 
@@ -266,7 +266,10 @@ always_ff @( posedge clk_i )
         if( clk_blink_green == CLK_FREQ_BLINK_GREEN - 16'd1 )
           clk_blink_green <= 16'd0;
         else if( cnt_blink_green == PERIOD_BLINK*CLK_FREQ - 9'd1 )
-          cnt_blink_green <= 9'd0;
+          begin
+            cnt_blink_green <= 9'd0;
+            clk_blink_green <= clk_blink_green + 16'd1;
+          end
         else
           begin
             clk_blink_green <= clk_blink_green + 16'd1;
@@ -275,7 +278,9 @@ always_ff @( posedge clk_i )
       end
     else if( state == YELLOW_S )
       begin  
-         timeout_yellow <= 1'b0;
+         cnt_blink_green <= 9'h1FF;
+         timeout_yellow  <= 1'b0;
+         green_prev      <= 0;
         if( clk_yellow == time_yellow*CLK_FREQ - 16'd2 )
           begin
             clk_yellow     <= 16'd0;

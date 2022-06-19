@@ -7,7 +7,5 @@ vsim -G/bit_population_counter_tb/WIDTH_TB=5 bit_population_counter_tb
 
 add log -r /*
 
-#add wave "sim:bit_population_counter_tb/mem"
-
 add wave -r *
 run -all

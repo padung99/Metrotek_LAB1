@@ -7,4 +7,5 @@ vsim traffic_lights_tb
 
 add log -r /*
 add wave -r *
+view -undock wave
 run -all

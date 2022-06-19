@@ -151,7 +151,6 @@ while( pkr.num() != 0 )
   end
 $display( "Total cmd sended: %0d",  cnt_pakage );
 $display( "Total valid cmd: %0d", total_cmd );
-
 endtask
 
 initial

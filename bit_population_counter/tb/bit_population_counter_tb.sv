@@ -21,14 +21,14 @@ default clocking cb
 endclocking
 
 bit_population_counter#(
-      .WIDTH      ( WIDTH_TB      )
+  .WIDTH      ( WIDTH_TB      )
 ) dut (
-      .clk_i      ( clk_i_tb      ),
-      .srst_i     ( srst_i_tb     ),
-      .data_i     ( data_i_tb     ),
-      .data_val_i ( data_val_i_tb ),
-      .data_o     ( data_o_tb     ),
-      .data_val_o ( data_val_o_tb ) 
+  .clk_i      ( clk_i_tb      ),
+  .srst_i     ( srst_i_tb     ),
+  .data_i     ( data_i_tb     ),
+  .data_val_i ( data_val_i_tb ),
+  .data_o     ( data_o_tb     ),
+  .data_val_o ( data_val_o_tb ) 
 );
 
 typedef struct {
