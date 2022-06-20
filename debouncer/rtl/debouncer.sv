@@ -9,42 +9,33 @@ module debouncer #(
 
 localparam CLK_DELAY =  GLITCH_TIME_NS*CLK_FREQ_MHZ/1000;
 
-logic                  key_prev;
-
-//initialize signal because we don't have "reset" 
-logic                  start_cnt = 0; 
-logic [CLK_DELAY-1: 0] cnt       = 0;
-
-logic                  key_tmp;
-logic                  stable;
+logic                       key_prev;
+logic        start_cnt; 
+logic [15:0] cnt      ;
 
 always_ff @( posedge clk_i )
   begin
-    key_prev <= key_i; 
+    key_prev <= key_i;
+    if( key_prev != key_i && cnt != CLK_DELAY )
+      start_cnt <= 1'b1;
+    else if( cnt == CLK_DELAY )
+      start_cnt <= 1'b0;
+  end
 
-    //key_i != key_prev && !start_cnt: begin counting; cnt == CLK_DELAY: end counting ==> module will jump to this condition once
-	 if( ( cnt == CLK_DELAY ) || ( key_i != key_prev && !start_cnt ) ) 
-      begin
-        cnt <= 0;  
-        if( cnt != CLK_DELAY )
-          begin
-            start_cnt <= 1;
-            stable    <= 0;
-          end
-        else
-          begin
-            start_cnt <= 0;
-            stable    <= 1;
-          end
-      end 
+always_ff @( posedge clk_i )
+  begin
+    if( start_cnt )
+      cnt <= cnt + 16'd1;
     else
-      begin
-        if( start_cnt )
-          cnt <= cnt + (CLK_DELAY)'(1);
-        
-        if( stable )
-         key_pressed_stb_o <= key_i;
-      end
+      cnt <= 16'd0;
+  end
+
+always_ff @( posedge clk_i )
+  begin
+    if( cnt == CLK_DELAY )
+      key_pressed_stb_o <= 1'b1;
+    else
+      key_pressed_stb_o <= 1'b0;
   end
 
 endmodule
