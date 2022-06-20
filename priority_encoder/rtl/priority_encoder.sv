@@ -19,21 +19,16 @@ logic   [WIDTH-1:0] right; //most right's index
 always_ff @( posedge clk_i )
   begin
     if( srst_i )
-      begin
-        data_val_o   <= 0;
-        data_left_o  <= 0;
-        data_right_o <= 0;
-      end
+      data_val_o <= 1'b0;
     else
-      begin
-        data_left_o  <= left;
-        data_right_o <= right;
-        
-        if( data_val_i )               
-          data_val_o <= 1;
-        else
-          data_val_o <= 0;
-      end
+      data_val_o <= data_val_i;
+
+  end
+
+always_ff @( posedge clk_i )
+  begin
+    data_left_o  <= left;
+    data_right_o <= right;
   end
 
 always_comb
@@ -44,12 +39,12 @@ always_comb
       if( data_i[l] ) //left
         break;
 
-      //Set left output 
-      for( int i = 0; i < WIDTH; i++ )
-        if( i != l )
-          left[i]  =  0;
-        else
-          left[i]  =  1;
+    //Set left output 
+    for( int i = 0; i < WIDTH; i++ )
+      if( i != l )
+        left[i]  =  1'b0;
+      else
+        left[i]  =  1'b1;
   end
 
 always_comb
@@ -68,8 +63,5 @@ always_comb
         right[i]  =  1;
 
   end
-
-// assign data_left_o  = left;
-// assign data_right_o = right;
 
 endmodule

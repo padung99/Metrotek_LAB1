@@ -1,7 +1,7 @@
 module bit_population_counter_tb;
 
 parameter WIDTH_TB           = 16;
-parameter MAX_package_sended_t = 30;
+parameter MAX_package_sended_t = 100;
 parameter WIDTH_O            = $clog2(WIDTH_TB) + 1;
 
 logic                          srst_i_tb;
@@ -120,7 +120,7 @@ initial
     testing( ouput_data, data_sended );
 
     $display("Test done!!!!");
-    $stop();
+    //$stop();
 
   end
 endmodule
