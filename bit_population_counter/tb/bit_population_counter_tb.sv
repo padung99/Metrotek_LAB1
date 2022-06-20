@@ -1,7 +1,7 @@
 module bit_population_counter_tb;
 
 parameter WIDTH_TB           = 16;
-parameter MAX_package_sended_t = 100;
+parameter MAX_PACKAGE_SEND   = 100;
 parameter WIDTH_O            = $clog2(WIDTH_TB) + 1;
 
 logic                          srst_i_tb;
@@ -46,7 +46,7 @@ mailbox #( logic [WIDTH_O-1:0] ) ouput_data  = new();
 mailbox #( data_send_t )         data_sended = new();
 
 task gen_package ( mailbox #( package_sended_t ) pks );
-for( int i = 0; i < MAX_package_sended_t; i++ )
+for( int i = 0; i < MAX_PACKAGE_SEND; i++ )
   begin
     package_sended_t new_pk;
     new_pk.data  = $urandom_range( 2**16-1, 0 );
@@ -73,12 +73,7 @@ while( pks.num() != 0 )
     
     if( data_val_i_tb )
       begin
-        cnt = (WIDTH_O)'(0);
-        for( int i = 0; i < WIDTH_TB; i++ )
-          begin
-            cnt = cnt + data_i_tb[i]; 
-          end
-        new_dts.cnt_bit_1 = cnt;
+        new_dts.cnt_bit_1 = $countones(data_i_tb);
         new_dts.data      = data_i_tb;
         sdata.put( new_dts );
       end
@@ -120,7 +115,7 @@ initial
     testing( ouput_data, data_sended );
 
     $display("Test done!!!!");
-    //$stop();
+    $stop();
 
   end
 endmodule
