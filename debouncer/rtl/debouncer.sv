@@ -9,9 +9,9 @@ module debouncer #(
 
 localparam CLK_DELAY =  GLITCH_TIME_NS*CLK_FREQ_MHZ/1000;
 
-logic                       key_prev;
+logic        key_prev;
 logic        start_cnt; 
-logic [15:0] cnt      ;
+logic [15:0] cnt;
 
 always_ff @( posedge clk_i )
   begin
