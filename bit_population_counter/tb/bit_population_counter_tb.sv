@@ -51,7 +51,8 @@ for( int i = 0; i < MAX_PACKAGE_SEND; i++ )
     package_sended_t new_pk;
     new_pk.data  = $urandom_range( 2**16-1, 0 );
     new_pk.valid = $urandom_range( 1,0 );
-    pks.put( new_pk );        
+    pks.put( new_pk );
+
   end
 endtask
 
@@ -69,8 +70,9 @@ while( pks.num() != 0 )
     data_val_i_tb = new_pks.valid;
 
     if( data_val_o_tb )
-      data_o.put( data_o_tb );
-    
+      begin
+        data_o.put( data_o_tb );
+      end
     if( data_val_i_tb )
       begin
         new_dts.cnt_bit_1 = $countones(data_i_tb);
@@ -84,7 +86,7 @@ endtask
 task testing ( mailbox #( logic [WIDTH_O-1:0] ) data_o,
                mailbox #( data_send_t )         sdata
              );
-
+$display( "testing() is running!!!" );
 while( sdata.num() != 0 && data_o.num() != 0 )
   begin
     logic [WIDTH_O-1:0] new_data_out;
@@ -113,7 +115,6 @@ if( data_o.num() != 0 )
   $display("%0d more data in receiving mailbox!!!", sdata.num() );
 else
   $display("Receiving mailbox is empty!!!");
-
 endtask
 
 initial
@@ -126,7 +127,7 @@ initial
     testing( output_data, data_sended );
 
     $display("Test done!!!!");
-    $stop();
+    //$stop();
 
   end
 endmodule
