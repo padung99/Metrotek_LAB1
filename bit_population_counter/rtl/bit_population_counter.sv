@@ -15,20 +15,15 @@ logic [$clog2(WIDTH):0] cnt;
 always_ff @( posedge clk_i )
   begin
     if( srst_i )
-        data_val_o  <= 0;
+      data_val_o  <= 0;
     else
-      begin 
-        if( data_val_i )
-          data_val_o <= 1;
-        else
-          data_val_o <= 0;
-      end
+      data_val_o <= data_val_i;
   end
 
 always_ff @( posedge clk_i )
   begin
     if( data_val_i )
-      data_o     <= cnt;
+      data_o <= cnt;
   end
 
 //This block will finish after 1 clk 

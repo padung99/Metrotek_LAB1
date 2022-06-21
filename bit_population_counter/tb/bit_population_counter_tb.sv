@@ -42,7 +42,7 @@ typedef struct {
 } data_send_t;
 
 mailbox #( package_sended_t )    pk_send     = new();
-mailbox #( logic [WIDTH_O-1:0] ) output_data  = new();
+mailbox #( logic [WIDTH_O-1:0] ) output_data = new();
 mailbox #( data_send_t )         data_sended = new();
 
 task gen_package ( mailbox #( package_sended_t ) pks );
