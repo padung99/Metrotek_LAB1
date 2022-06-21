@@ -42,7 +42,7 @@ typedef struct {
 } data_send_t;
 
 mailbox #( package_sended_t )    pk_send     = new();
-mailbox #( logic [WIDTH_O-1:0] ) ouput_data  = new();
+mailbox #( logic [WIDTH_O-1:0] ) output_data  = new();
 mailbox #( data_send_t )         data_sended = new();
 
 task gen_package ( mailbox #( package_sended_t ) pks );
@@ -111,8 +111,8 @@ initial
     ##1;
     srst_i_tb <= 0;  
     gen_package( pk_send );
-    send_pk( pk_send, ouput_data, data_sended );
-    testing( ouput_data, data_sended );
+    send_pk( pk_send, output_data, data_sended );
+    testing( output_data, data_sended );
 
     $display("Test done!!!!");
     $stop();
