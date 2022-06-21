@@ -103,6 +103,17 @@ while( sdata.num() != 0 && data_o.num() != 0 )
         $display( "Module runs correctly!!!\n" );
       end
   end
+
+if( sdata.num() != 0 )
+  $display("%0d more data in sending mailbox!!!", sdata.num() );
+else
+  $display("Sending mailbox is empty!!!");
+
+if( data_o.num() != 0 )
+  $display("%0d more data in receiving mailbox!!!", sdata.num() );
+else
+  $display("Receiving mailbox is empty!!!");
+
 endtask
 
 initial

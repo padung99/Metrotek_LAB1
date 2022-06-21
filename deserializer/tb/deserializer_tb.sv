@@ -1,8 +1,6 @@
 module deserializer_tb;
 
-parameter NUMBER_OF_BITS             = 50;
 parameter MAXIMUM_PACKAGE_TRANSFERED = 256;
-
 
 bit          clk_i_tb;
 logic        srst_i_tb;
@@ -97,6 +95,16 @@ while( data_receive.num() != 0 && bit_send.num() != 0 )
     else
       $display( "Data received correctly!!!\n" );
   end
+
+if( bit_send.num() != 0 )
+  $display("%0d more data in sending mailbox!!!", bit_send.num() );
+else
+  $display("Sending mailbox is empty!!!");
+
+if( data_receive.num() != 0 )
+  $display("%0d more data in receiving mailbox!!!", data_receive.num() );
+else
+  $display("Receiving mailbox is empty!!!");
 endtask
 
 initial

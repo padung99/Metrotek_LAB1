@@ -1,7 +1,7 @@
 module serializer_tb;
 parameter TEST_CNT         = 20;
 parameter MAX_TIME_DELAY   = 10;
-parameter NUMBER_OF_PACKET = 75;
+parameter NUMBER_OF_PACKET = 110;
 
 bit          clk_i_tb;
 logic        srst_i_tb;
@@ -71,9 +71,12 @@ task send_package( mailbox #( package_send_t ) spk,
       data_mod_i_tb = new_spk.mod;
       data_val_i_tb = new_spk.valid;
 
-      //save valid input data to mailbox
+      //Save valid input data to mailbox:
+      //In sending mailbox data will be more than in receiving mailbox "1 data"
+      //because valid data can be pushed to "receving mailbox" when new data valid pushed to "sending mailbox" 
       if( !ser_data_val_o_tb && data_val_i_tb && !busy_o_tb )
         begin     
+          //Put valid data to "sending mailbox" 
           if( data_mod_i_tb > 2  )
             data_sended.put( new_spk.data >> 16 - data_mod_i_tb );
           else
@@ -87,7 +90,8 @@ task send_package( mailbox #( package_send_t ) spk,
           
           //Set all invalid bit to '0'
           for( int i = 15; i >= cnt; i-- )
-            new_bit_r[i] = 0;      
+            new_bit_r[i] = 0;
+          //Put valid data to "receving mailbox"    
           data_receive.put( new_bit_r );
 
           tmp_mod = ( data_mod_i_tb == 4'd0 ) ? 5'd16 : data_mod_i_tb;
@@ -127,6 +131,16 @@ while( data_sended.num() != 0 && data_receive.num() != 0 )
     else
       $display( "Data received correctly!!!\n" );
   end
+
+if( data_sended.num() != 0 )
+  $display("%0d more data in sending mailbox!!!", data_sended.num() );
+else
+  $display("Sending mailbox is empty!!!");
+
+if( data_receive.num() != 0 )
+  $display("%0d more data in receiving mailbox!!!", data_receive.num() );
+else
+  $display("Receiving mailbox is empty!!!");
 endtask
 
 initial

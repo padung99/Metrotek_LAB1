@@ -1,7 +1,7 @@
 module priority_encoder_tb;
 
 parameter WIDTH_TB           = 5;
-parameter MAX_PACKAGE_SENDED = 2**(WIDTH_TB+1)+1;
+parameter MAX_PACKAGE_SENDED = 100;
 
 bit                  clk_i_tb;
 
@@ -148,6 +148,15 @@ while( ( data.num() != 0 ) && ( pkr.num() != 0 ) )
         
       end
   end
+if( data.num() != 0 )
+  $display("%0d more data in sending mailbox!!!", data.num() );
+else
+  $display("Sending mailbox is empty!!!");
+
+if( pkr.num() != 0 )
+  $display("%0d more data in receiving mailbox!!!", pkr.num() );
+else
+  $display("Receiving mailbox is empty!!!");
 endtask
 
 initial

@@ -11,4 +11,5 @@ add log -r /*
 #add wave "sim:/serializer_tb/data_test_i" 
 
 add wave -r *
+view -undock wave
 run -all
