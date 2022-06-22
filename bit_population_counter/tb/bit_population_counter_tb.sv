@@ -112,7 +112,7 @@ else
   $display("Sending mailbox is empty!!!");
 
 if( data_o.num() != 0 )
-  $display("%0d more data in receiving mailbox!!!", sdata.num() );
+  $display("%0d more data in receiving mailbox!!!", data_o.num() );
 else
   $display("Receiving mailbox is empty!!!");
 endtask
