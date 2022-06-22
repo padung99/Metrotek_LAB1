@@ -2,7 +2,7 @@ module debouncer_tb;
   
 parameter CLK_FREQ_MHZ_TB   = 50; //50 MHz
 parameter NOISE_PULSE       = 1000; //Number of noise clk
-parameter GLITCH_TIME_NS_TB = ( 1.03*NOISE_PULSE*1000 )/CLK_FREQ_MHZ_TB;
+parameter GLITCH_TIME_NS_TB = ( (NOISE_PULSE+5)*1000 )/CLK_FREQ_MHZ_TB;
 
 parameter PRESS_NUMBER      = 30;
 
@@ -51,9 +51,9 @@ for( int i = 0; i < PRESS_NUMBER; i++ )
     //Generating noise signal
     if( noise_signal )
       begin
-        new_pk.noise_before_stable = $urandom_range( 1.01*NOISE_PULSE, NOISE_PULSE );
+        new_pk.noise_before_stable = $urandom_range( NOISE_PULSE + 2, NOISE_PULSE );
         new_pk.stable_time_1       = $urandom_range( 3*NOISE_PULSE, 5*NOISE_PULSE  );
-        new_pk.noise_after_stable  = $urandom_range( 1.01*NOISE_PULSE, NOISE_PULSE );
+        new_pk.noise_after_stable  = $urandom_range( NOISE_PULSE + 2, NOISE_PULSE );
         new_pk.stable_time_0       = $urandom_range( 3*NOISE_PULSE, 5*NOISE_PULSE  );
       end
     else
