@@ -1,7 +1,7 @@
 module bit_population_counter_tb;
 
 parameter WIDTH_TB           = 16;
-parameter MAX_PACKAGE_SEND   = 100;
+parameter MAX_PACKAGE_SEND   = 105;
 parameter WIDTH_O            = $clog2(WIDTH_TB) + 1;
 
 logic                          srst_i_tb;
@@ -14,7 +14,7 @@ bit clk_i_tb;
 
 initial 
   forever
-    #5 clk_i_tb = !clk_i_tb;
+    #4 clk_i_tb = !clk_i_tb;
 
 default clocking cb
   @( posedge clk_i_tb );

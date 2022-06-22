@@ -9,4 +9,4 @@ add log -r /*
 
 add wave -r *
 
-run 1.01 ms
+run 1 ms
