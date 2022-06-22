@@ -52,9 +52,9 @@ for( int i = 0; i < PRESS_NUMBER; i++ )
     if( noise_signal )
       begin
         new_pk.noise_before_stable = $urandom_range( 1.01*NOISE_PULSE, NOISE_PULSE );
-        new_pk.stable_time_1       = $urandom_range( 3*NOISE_PULSE, 5*NOISE_PULSE );
+        new_pk.stable_time_1       = $urandom_range( 3*NOISE_PULSE, 5*NOISE_PULSE  );
         new_pk.noise_after_stable  = $urandom_range( 1.01*NOISE_PULSE, NOISE_PULSE );
-        new_pk.stable_time_0       = $urandom_range( 3*NOISE_PULSE, 5*NOISE_PULSE );
+        new_pk.stable_time_0       = $urandom_range( 3*NOISE_PULSE, 5*NOISE_PULSE  );
       end
     else
       begin
@@ -79,7 +79,7 @@ while( press.num() != 0 )
       begin
         key_i_tb = $urandom_range( 1,0 );
         ##1;
-        if( key_pressed_stb_o_tb )
+        if( key_i_tb )
           cnt_1_duration++;
         else
           cnt_0_duration++;
@@ -89,7 +89,7 @@ while( press.num() != 0 )
       begin
         key_i_tb = 1;
         ##1;
-        if( key_pressed_stb_o_tb )
+        if( key_i_tb )
           cnt_1_duration++;
         else
           cnt_0_duration++;
@@ -99,7 +99,7 @@ while( press.num() != 0 )
       begin
         key_i_tb = $urandom_range( 1,0 );
         ##1;
-        if( key_pressed_stb_o_tb )
+        if( key_i_tb )
           cnt_1_duration++;
         else
           cnt_0_duration++;
@@ -109,7 +109,7 @@ while( press.num() != 0 )
       begin
         key_i_tb = 0;
         ##1;
-        if( key_pressed_stb_o_tb )
+        if( key_i_tb )
           cnt_1_duration++;
         else
           cnt_0_duration++;
