@@ -10,7 +10,6 @@ logic        ser_data_o_tb;
 logic        ser_data_val_o_tb;
 logic        busy_o_tb;
 
-
 mailbox #( logic [15:0] ) gen_data = new();
 
 initial
@@ -73,13 +72,13 @@ task send_package( mailbox #( package_send_t ) spk,
       if( !ser_data_val_o_tb && data_val_i_tb && !busy_o_tb )
         begin     
           tmp_mod = ( data_mod_i_tb == 4'd0 ) ? 5'd16 : data_mod_i_tb;  
-                  
+
           //Put valid data to "sending mailbox" 
           if( tmp_mod > 2 )
             data_sended.put( new_spk.data >> 16 - tmp_mod );
           else
             begin
-              if( tmp_mod == 0 )
+              if( tmp_mod == 16 )
                 data_sended.put( new_spk.data );
             end     
         end
@@ -91,7 +90,6 @@ task send_package( mailbox #( package_send_t ) spk,
           cnt++;
         end
       
-
       if( cnt == tmp_mod )
         begin
           //Set all invalid bit to '0'
@@ -106,7 +104,7 @@ task send_package( mailbox #( package_send_t ) spk,
 endtask
 
 task testing_package( mailbox #( logic [15:0] ) data_sended,
-                      mailbox #( logic [15:0] ) data_receive         
+                      mailbox #( logic [15:0] ) data_receive
                     );
 
 int send, receive;
@@ -144,10 +142,9 @@ initial
     srst_i_tb     <= 0;
 
     gen_package  ( send_pk );
-
     send_package ( send_pk, data_send_valid, data_receive );
-
     testing_package( data_send_valid, data_receive );
+
     $display( "Test done!!!" );
     $stop();
   
