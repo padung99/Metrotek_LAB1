@@ -1,7 +1,5 @@
 module serializer_tb;
-parameter TEST_CNT         = 20;
-parameter MAX_TIME_DELAY   = 10;
-parameter NUMBER_OF_PACKET = 110;
+parameter NUMBER_OF_PACKET = 208;
 
 bit          clk_i_tb;
 logic        srst_i_tb;
@@ -72,37 +70,36 @@ task send_package( mailbox #( package_send_t ) spk,
       data_val_i_tb = new_spk.valid;
 
       //Save valid input data to mailbox:
-      //In sending mailbox data will be more than in receiving mailbox "1 data"
-      //because valid data can be pushed to "receving mailbox" when new data valid pushed to "sending mailbox" 
       if( !ser_data_val_o_tb && data_val_i_tb && !busy_o_tb )
         begin     
+          tmp_mod = ( data_mod_i_tb == 4'd0 ) ? 5'd16 : data_mod_i_tb;  
+                  
           //Put valid data to "sending mailbox" 
-          if( data_mod_i_tb > 2  )
-            data_sended.put( new_spk.data >> 16 - data_mod_i_tb );
+          if( tmp_mod > 2 )
+            data_sended.put( new_spk.data >> 16 - tmp_mod );
           else
             begin
-              if( data_mod_i_tb == 1 || data_mod_i_tb == 2 )
-                data_sended.put( 16'd0 );
+              if( tmp_mod == 0 )
+                data_sended.put( new_spk.data );
+            end     
+        end
+      
+      //Concatenate all valid output bit to an array for comparison with input data
+      if( ser_data_val_o_tb )  
+        begin
+          new_bit_r[tmp_mod-1 - cnt] = ser_data_o_tb;
+          cnt++;
+        end
+      
 
-              if( data_mod_i_tb == 0 )
-                data_sended.put( new_spk.data  );
-            end
-          
+      if( cnt == tmp_mod )
+        begin
           //Set all invalid bit to '0'
           for( int i = 15; i >= cnt; i-- )
             new_bit_r[i] = 0;
           //Put valid data to "receving mailbox"    
           data_receive.put( new_bit_r );
-
-          tmp_mod = ( data_mod_i_tb == 4'd0 ) ? 5'd16 : data_mod_i_tb;
           cnt = 0;
-        end
-      
-      //combine all valid output data to an array for comparison with input data
-      if( ser_data_val_o_tb )  
-        begin
-          new_bit_r[tmp_mod-1 - cnt] = ser_data_o_tb;
-          cnt++;
         end
       ##1; 
     end
@@ -114,14 +111,11 @@ task testing_package( mailbox #( logic [15:0] ) data_sended,
 
 int send, receive;
 int cnt;
-logic [15:0] new_data_r;
-
-//Throw out 1-st data in mailbox because it's trash data
-data_receive.get( new_data_r );
 
 while( data_sended.num() != 0 && data_receive.num() != 0 )
   begin
     logic [15:0] new_pks;
+    logic [15:0] new_data_r;
     data_receive.get( new_data_r );
     data_sended.get( new_pks );
     

@@ -10,4 +10,5 @@ add log -r /*
 #add wave "sim:/deserializer_tb/bits_valid"
 
 add wave -r *
+view -undock wave
 run -all
