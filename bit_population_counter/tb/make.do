@@ -2,7 +2,7 @@ vlib work
 
 vlog -sv ../rtl/bit_population_counter.sv
 vlog -sv bit_population_counter_tb.sv
-#vlog -sv top_tb.sv
+vlog -sv top_tb.sv
 
 set PARAM_LIST {
    "-gWIDTH_TB=5"
@@ -19,7 +19,7 @@ foreach params $PARAM_LIST {
   stop
   echo "Stop at: $now us"
   }
-  
+
   run -all
 }
 
