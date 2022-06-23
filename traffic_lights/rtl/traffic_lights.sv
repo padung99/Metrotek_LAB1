@@ -21,6 +21,7 @@ module traffic_lights #(
 localparam CLK_FREQ_RED_YELLOW   = CLK_FREQ*TIME_RED_YELLOW;
 localparam CLK_FREQ_BLINK_GREEN  = CLK_FREQ*BLINK_TIME_GREEN;
 localparam PERIOD_BLINK          = 2*HALF_PERIOD_BLINK;  
+
 logic        turn_on;
 logic        turn_off;
 logic        notransition;
@@ -189,7 +190,12 @@ always_comb
 
           //blink green
           if( cnt_blink_green == PERIOD_BLINK*CLK_FREQ - 10'd1 )
-            green_o  = !green_o;
+            begin
+              if( green_o == 1 ) 
+                green_o = 0;
+              else
+                green_o = 1;
+            end
         end
       
       YELLOW_S:
@@ -206,7 +212,12 @@ always_comb
 
           //blink yellow
           if( cnt_blink_yellow == PERIOD_BLINK*CLK_FREQ - 10'd1 )
-            yellow_o  = !yellow_o;
+            begin
+              if( yellow_o == 1 )
+                yellow_o = 0;
+              else
+                yellow_o = 1;
+            end
         end        
     endcase
   end
