@@ -263,7 +263,7 @@ always_ff @( posedge clk_i )
           if( clk_yellow == time_yellow*CLK_FREQ - 16'd2 )
             clk_yellow <= 16'd0;
           else if( !timeout_yellow )
-            clk_yellow <= clk_yellow + 16'd1; 
+            clk_yellow <= clk_yellow + 16'd1;
         end
       
       NOTRANSITION_S:
@@ -271,7 +271,7 @@ always_ff @( posedge clk_i )
           if( cnt_blink_yellow == PERIOD_BLINK*CLK_FREQ - 10'd1 )
             cnt_blink_yellow <= 10'd0;
           else
-            cnt_blink_yellow <= cnt_blink_yellow + 10'd1;    
+            cnt_blink_yellow <= cnt_blink_yellow + 10'd1;
         end
     endcase
   end

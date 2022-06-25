@@ -2,7 +2,8 @@ module debouncer_tb;
   
 parameter CLK_FREQ_MHZ_TB   = 50; //50 MHz
 parameter NOISE_PULSE       = 1000; //Number of noise clk
-parameter GLITCH_TIME_NS_TB = ( (NOISE_PULSE+5)*1000 )/CLK_FREQ_MHZ_TB;
+parameter GLITCH_TIME_NS_TB = 1000;
+
 
 parameter PRESS_NUMBER      = 30;
 

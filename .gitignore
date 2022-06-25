@@ -42,3 +42,5 @@ traffic_lights/quartus_prj/output_files/
 traffic_lights/quartus_prj/traffic_lights.qws
 traffic_lights/tb/vsim.wlf
 traffic_lights/tb/work/
+traffic_lights/quartus_prj/simulation/
+traffic_lights/quartus_prj/traffic_lights_nativelink_simulation.rpt
