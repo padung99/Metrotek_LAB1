@@ -1,12 +1,23 @@
 vlib work
 
-vlog -sv ../rtl/debouncer.sv
-vlog -sv debouncer_tb.sv
+set source_file {
+  "../rtl/debouncer.sv"
+  "debouncer_tb.sv"
+}
 
-vsim debouncer_tb
+foreach files $source_file {
+  vlog -sv $files
+}
+
+#Return the name of last file (without extension .sv)
+set fbasename [file rootname [file tail [lindex $source_file end]]]
+
+vsim $fbasename
 
 add log -r /*
 add wave -r *
-wave zoom full
+
 view -undock wave
 run -all
+
+

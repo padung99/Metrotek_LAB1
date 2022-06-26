@@ -1,9 +1,18 @@
 vlib work
 
-vlog -sv ../rtl/deserializer.sv
-vlog -sv deserializer_tb.sv
+set source_file {
+  "../rtl/deserializer.sv"
+  "deserializer_tb.sv"
+}
 
-vsim deserializer_tb
+foreach files $source_file {
+  vlog -sv $files
+}
+
+#Return the name of last file (without extension .sv)
+set fbasename [file rootname [file tail [lindex $source_file end]]]
+
+vsim $fbasename
 
 add log -r /*
 

@@ -1,11 +1,20 @@
 vlib work
 
-vlog -sv ../rtl/traffic_lights.sv
-vlog -sv traffic_lights_tb.sv
+set source_file {
+  "../rtl/traffic_lights.sv"
+  "traffic_lights_tb.sv"
+}
 
-vsim traffic_lights_tb
+foreach files $source_file {
+  vlog -sv $files
+}
 
-add log -r /*
+#Return the name of last file (without extension .sv)
+set fbasename [file rootname [file tail [lindex $source_file end]]]
+
+vsim $fbasename
+
+add log -r /*s
 add wave -r *
 view -undock wave
 run -all

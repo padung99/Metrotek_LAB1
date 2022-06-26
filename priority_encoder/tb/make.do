@@ -1,9 +1,18 @@
 vlib work
 
-vlog  -sv ../rtl/priority_encoder.sv
-vlog  -sv priority_encoder_tb.sv
+set source_file {
+  "../rtl/priority_encoder.sv"
+  "priority_encoder_tb.sv"
+}
 
-vsim priority_encoder_tb
+foreach files $source_file {
+  vlog -sv $files
+}
+
+#Return the name of last file (without extension .sv)
+set fbasename [file rootname [file tail [lindex $source_file end]]]
+
+vsim $fbasename
 
 add log -r /*
 

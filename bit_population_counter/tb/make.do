@@ -1,27 +1,38 @@
 vlib work
 
-vlog -sv ../rtl/bit_population_counter.sv
-vlog -sv bit_population_counter_tb.sv
-vlog -sv top_tb.sv
+set source_file {
+  "../rtl/bit_population_counter.sv"
+  "bit_population_counter_tb.sv"
+}
+
+foreach files $source_file {
+  vlog -sv $files
+}
 
 set PARAM_LIST {
    "-gWIDTH_TB=5"
 }
 
-foreach params $PARAM_LIST {
-  vsim $params bit_population_counter_tb -t us
+#Return the name of last file (without extension .sv)
+set fbasename [file rootname [file tail [lindex $source_file end]]]
 
+foreach params $PARAM_LIST {
+  vsim $params  $fbasename -t us
   add log -r /*
   add wave -r *
   view -undock wave
-
   when { $now >= 1ms } {
   stop
   echo "Stop at: $now us"
   }
 
   run -all
+  
 }
+
+#vlog -sv ../rtl/bit_population_counter.sv
+#vlog -sv bit_population_counter_tb.sv
+#vlog -sv top_tb.sv
 
 #vsim top_tb -t us
 #vsim -G/bit_population_counter_tb/WIDTH_TB=5 bit_population_counter_tb -t us
