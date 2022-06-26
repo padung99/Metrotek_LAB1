@@ -47,6 +47,9 @@ logic [9:0] cnt_blink_green;
 logic        timeout_yellow;
 logic        timeout_green;
 logic        timeout_red;
+logic        green_time_valid ;
+logic        red_time_valid;
+logic        yellow_time_valid;
 
 //Saving previous state of yellow_o and green_o to avoid error
 //"always_comb construct does not infer purely combinational logic" in "control output" block FSM
@@ -335,19 +338,26 @@ always_ff @( posedge clk_i )
     yellow_prev <= yellow_o;
   end
 
+assign green_time_valid  = ( cmd_valid_i ) && ( state == NOTRANSITION_S ) && ( set_green_time );
+assign red_time_valid    = ( cmd_valid_i ) && ( state == NOTRANSITION_S ) && ( set_red_time );
+assign yellow_time_valid = ( cmd_valid_i ) && ( state == NOTRANSITION_S ) && ( set_yellow_time );
 
 always_ff @( posedge clk_i )
   begin
-    //Setting time available only on "notransition" mode
-    if( cmd_valid_i && state == NOTRANSITION_S )
-      begin
-        if( set_green_time )
-          time_green  <= cmd_data_i;
-        else if( set_red_time )
-          time_red    <= cmd_data_i;
-        else if( set_yellow_time )
-          time_yellow <= cmd_data_i;
-      end
+    if( green_time_valid )
+      time_green  <= cmd_data_i;
+  end
+
+always_ff @( posedge clk_i )
+  begin
+    if( red_time_valid )
+      time_red    <= cmd_data_i;
+  end
+
+always_ff @( posedge clk_i )
+  begin
+    if( yellow_time_valid )
+      time_yellow <= cmd_data_i;
   end
 
 //Decode cmd_type_i
