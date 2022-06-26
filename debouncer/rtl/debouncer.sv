@@ -1,6 +1,6 @@
 module debouncer #(
   parameter CLK_FREQ_MHZ   = 50,
-  parameter GLITCH_TIME_NS = 200
+  parameter GLITCH_TIME_NS = 2000
 ) (
   input  logic clk_i,
   input  logic key_i,
