@@ -14,7 +14,7 @@ set fbasename [file rootname [file tail [lindex $source_file end]]]
 
 vsim $fbasename
 
-add log -r /*s
+add log -r /*
 add wave -r *
 view -undock wave
 run -all
