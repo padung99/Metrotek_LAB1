@@ -225,7 +225,7 @@ while( pks.num() != 0 )
               redundant_clk = cnt_cmd_0 - iteration_0*( set_red + TIME_RED_YELLOW_TB + set_green + BLINK_TIME_GREEN_TB + set_yellow )*CLK_FREQ_TB;
 
             //t < red;  
-            if( redundant_clk <= set_red*CLK_FREQ_TB )
+            if( redundant_clk < set_red*CLK_FREQ_TB )
               begin
                 red                   = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + redundant_clk;
                 yellow_noblink        = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB;    
@@ -239,7 +239,7 @@ while( pks.num() != 0 )
               end
             
             //t < red + red_yellow;
-            else if( redundant_clk <= ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB )
+            else if( redundant_clk < ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB )
               begin
                 red                    = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + redundant_clk;
                 yellow_noblink         = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB + redundant_clk - set_red*CLK_FREQ_TB;
