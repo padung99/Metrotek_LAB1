@@ -20,7 +20,7 @@ module traffic_lights #(
 
 localparam CLK_FREQ_RED_YELLOW   = CLK_FREQ*TIME_RED_YELLOW;
 localparam CLK_FREQ_BLINK_GREEN  = CLK_FREQ*BLINK_TIME_GREEN;
-localparam PERIOD_BLINK          = 2*HALF_PERIOD_BLINK;  
+localparam PERIOD_BLINK          = 2*HALF_PERIOD_BLINK;
 
 logic        turn_on;
 logic        turn_off;
@@ -47,7 +47,7 @@ logic [9:0] cnt_blink_green;
 logic        timeout_yellow;
 logic        timeout_green;
 logic        timeout_red;
-logic        green_time_valid ;
+logic        green_time_valid;
 logic        red_time_valid;
 logic        yellow_time_valid;
 
