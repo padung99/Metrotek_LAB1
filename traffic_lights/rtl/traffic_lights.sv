@@ -225,8 +225,7 @@ always_ff @( posedge clk_i )
         clk_red_yellow   <= 16'd0; 
         clk_green        <= 16'd0;
         clk_blink_green  <= 16'd0;
-        clk_yellow       <= 16'd0;
-        // cnt_blink_yellow <= 10'h3FF;    
+        clk_yellow       <= 16'd0;   
         end 
       
       RED_S:
@@ -269,28 +268,8 @@ always_ff @( posedge clk_i )
             clk_yellow <= clk_yellow + 16'd1;
         end
       
-      // NOTRANSITION_S:
-      //   begin
-      //     if( cnt_blink_yellow == PERIOD_BLINK*CLK_FREQ - 10'd1 )
-      //       cnt_blink_yellow <= 10'd0;
-      //     else
-      //       cnt_blink_yellow <= cnt_blink_yellow + 10'd1;
-      //   end
     endcase
   end
-
-// always_ff @( posedge clk_i )
-//   begin
-//     if( state == BLINK_GREEN_S )
-//       begin
-//           if( clk_blink_green == CLK_FREQ_BLINK_GREEN - 16'd1 )
-//             clk_blink_green <= 16'd0;
-//           else
-//             clk_blink_green <= clk_blink_green + 16'd1;
-//       end
-//     else
-//       clk_blink_green <= 16'd0;  
-//   end
 
 always_ff @( posedge clk_i )
   begin
