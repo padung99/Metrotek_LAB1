@@ -8,16 +8,19 @@ parameter YELLOW_STATE_LOWER      = 3;
 parameter YELLOW_STATE_UPPER      = 5;
 
 //Frequency in (MHz)
-parameter CLK_FREQ_TB             = 2;
+parameter CLK_FREQ_TB             = 4;
 
 //Light time (ms)
 parameter TIME_RED_YELLOW_TB      = 4;
 parameter BLINK_TIME_GREEN_TB     = 12;
 parameter CLK_DELAY_BLINK_GREEN   = BLINK_TIME_GREEN_TB*CLK_FREQ_TB;
-parameter HALF_PERIOD_BLINK_TB    = 1;
+parameter HALF_PERIOD_BLINK_TB    = 2; ///
 
 parameter MAX_PACKAGE_SEND        = 21;
 
+parameter CLK_HALF_PERIOD_BLINK   = HALF_PERIOD_BLINK_TB*2*CLK_FREQ_TB;
+parameter CLK_FULL_PERIOD_BLINK   =  CLK_HALF_PERIOD_BLINK*2;
+parameter BIT_SHIFT               = $clog2(CLK_FULL_PERIOD_BLINK);
 parameter CLK_DELAY_STANDARD_MODE = (GREEN_STATE_UPPER*2 + YELLOW_STATE_UPPER + TIME_RED_YELLOW_TB + BLINK_TIME_GREEN_TB)*CLK_FREQ_TB;
 
 bit          clk_i_tb;
@@ -110,8 +113,12 @@ for( int i = 0; i < MAX_PACKAGE_SEND; i++ )
     else if( new_pks.type_cmd == 3'd3 ||  new_pks.type_cmd == 3'd4 ||  new_pks.type_cmd == 3'd5 )
       new_pks.package_delay = 4;
     else if( new_pks.type_cmd == 3'd0 )
-      new_pks.package_delay = CLK_DELAY_STANDARD_MODE;
-      
+      // new_pks.package_delay = CLK_DELAY_STANDARD_MODE ; ///////////////// //red
+      // new_pks.package_delay = CLK_DELAY_STANDARD_MODE + 3*TIME_RED_YELLOW_TB*CLK_FREQ_TB; //red_yellow
+      // new_pks.package_delay = CLK_DELAY_STANDARD_MODE + ( GREEN_STATE_UPPER + TIME_RED_YELLOW_TB )*CLK_FREQ_TB; ///////////////// //green
+      new_pks.package_delay = CLK_DELAY_STANDARD_MODE + ( GREEN_STATE_UPPER + TIME_RED_YELLOW_TB + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB; ///////////////// //blink_green
+      // new_pks.package_delay = CLK_DELAY_STANDARD_MODE + ( GREEN_STATE_UPPER + TIME_RED_YELLOW_TB + BLINK_TIME_GREEN_TB + 5)*CLK_FREQ_TB; //yellow
+
     pks.put( new_pks );
   end
 endtask
@@ -120,9 +127,8 @@ task send_package( mailbox #( package_send_t ) pks,
                    mailbox #( RYG_receive_t )  pkr
                  );
 
-
 int red, green;
-int yellow_blink;
+int yellow_blink; 
 int yellow_noblink;
 int redundant_clk_yellow;
 logic detect_0;
@@ -138,7 +144,7 @@ logic [15:0] cnt_cmd_0;
 int iteration_0;
 int redundant_clk;
 int redundant_blink_green;
-int tmp_green;
+int tmp_green, tmp_green2;
 
 cnt_cmd_2 = 16'd0;
 cnt_cmd_1 = 16'd0;
@@ -178,12 +184,12 @@ while( pks.num() != 0 )
           end
         else
           begin
-            redundant_clk_yellow = cnt_cmd_2 - ( cnt_cmd_2 >> 3 )*8;
+            redundant_clk_yellow = cnt_cmd_2 - ( cnt_cmd_2 >> BIT_SHIFT )*CLK_FULL_PERIOD_BLINK;
             
-            if( redundant_clk_yellow < 4 )
-              yellow_blink =  yellow_blink + (cnt_cmd_2 >> 3)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2 + redundant_clk_yellow;
+            if( redundant_clk_yellow < CLK_HALF_PERIOD_BLINK )
+              yellow_blink =  yellow_blink + (cnt_cmd_2 >> BIT_SHIFT)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2 + redundant_clk_yellow;
             else 
-              yellow_blink =  yellow_blink + ((cnt_cmd_2 >> 3) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
+              yellow_blink =  yellow_blink + ((cnt_cmd_2 >> BIT_SHIFT) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2; 
       
             
             cnt_cmd_2 = 16'd0;
@@ -217,67 +223,78 @@ while( pks.num() != 0 )
                 red    = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + redundant_clk;
                 yellow_noblink = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB;
                 
-                redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> 3 )*8; 
-                if( redundant_blink_green < 4 )
-                  tmp_green = (CLK_DELAY_BLINK_GREEN >> 3)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2+ redundant_blink_green;
+                redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> BIT_SHIFT )*CLK_FULL_PERIOD_BLINK; 
+                if( redundant_blink_green < CLK_HALF_PERIOD_BLINK )
+                  tmp_green = (CLK_DELAY_BLINK_GREEN >> BIT_SHIFT)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2+ redundant_blink_green;
                 else 
-                  tmp_green = ((CLK_DELAY_BLINK_GREEN >> 3) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
+                  tmp_green = ((CLK_DELAY_BLINK_GREEN >> BIT_SHIFT) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
 
                 green  = iteration_0*set_green*CLK_FREQ_TB + tmp_green;
               end
+
             else if( redundant_clk <= ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB )
               begin
                 red    = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + redundant_clk;
                 yellow_noblink = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB + redundant_clk - set_red*CLK_FREQ_TB;
 
-                redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> 3 )*8; 
-                if( redundant_blink_green < 4 )
-                  tmp_green = (CLK_DELAY_BLINK_GREEN >> 3)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2+ redundant_blink_green;
+                redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> BIT_SHIFT )*CLK_FULL_PERIOD_BLINK; 
+                if( redundant_blink_green < CLK_HALF_PERIOD_BLINK )
+                  tmp_green = (CLK_DELAY_BLINK_GREEN >> BIT_SHIFT)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2+ redundant_blink_green;
                 else 
-                  tmp_green = ((CLK_DELAY_BLINK_GREEN >> 3) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
+                  tmp_green = ((CLK_DELAY_BLINK_GREEN >> BIT_SHIFT) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
 
                 green  = iteration_0*set_green*CLK_FREQ_TB + tmp_green;
               end
+
             else if( redundant_clk < ( set_red + TIME_RED_YELLOW_TB + set_green )*CLK_FREQ_TB )
               begin
                 red    = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB;
                 yellow_noblink = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB + TIME_RED_YELLOW_TB*CLK_FREQ_TB;
                 //green  = iteration_0*( set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB + redundant_clk - ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB;
 
-                redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> 3 )*8; 
-                if( redundant_blink_green < 4 )
-                  tmp_green = (CLK_DELAY_BLINK_GREEN >> 3)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2+ redundant_blink_green;
+                redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> BIT_SHIFT )*CLK_FULL_PERIOD_BLINK; 
+                if( redundant_blink_green < CLK_HALF_PERIOD_BLINK )
+                  tmp_green = (CLK_DELAY_BLINK_GREEN >> BIT_SHIFT)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2+ redundant_blink_green;
                 else 
-                  tmp_green = ((CLK_DELAY_BLINK_GREEN >> 3) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
+                  tmp_green = ((CLK_DELAY_BLINK_GREEN >> BIT_SHIFT) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
 
                 green  = iteration_0*set_green*CLK_FREQ_TB + tmp_green + (redundant_clk - ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB);
+              end     
+            ////////////////////////////////////////
+            else if( redundant_clk < ( set_red + TIME_RED_YELLOW_TB + set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB )
+             begin
+                red    = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB;
+                yellow_noblink = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB + TIME_RED_YELLOW_TB*CLK_FREQ_TB;
+       
+                //green  = iteration_0*( set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB + set_green*CLK_FREQ_TB;
+                //Calculate full blink_green
+                redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> BIT_SHIFT )*CLK_FULL_PERIOD_BLINK; 
+                if( redundant_blink_green < CLK_HALF_PERIOD_BLINK )
+                  tmp_green = (CLK_DELAY_BLINK_GREEN >> BIT_SHIFT)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2+ redundant_blink_green;
+                else 
+                  tmp_green = ((CLK_DELAY_BLINK_GREEN >> BIT_SHIFT) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
+                
+                //Calculate unfull blink_green( blink_green --> notransition)
+                redundant_blink_green = redundant_clk - ( set_red + TIME_RED_YELLOW_TB + set_green )*CLK_FREQ_TB;
+                if( redundant_blink_green % CLK_FULL_PERIOD_BLINK < CLK_HALF_PERIOD_BLINK )
+                  tmp_green2 = (redundant_blink_green >> BIT_SHIFT)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
+                else
+                  tmp_green2 = ( (redundant_blink_green >> BIT_SHIFT) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
+                green = (iteration_0 + 1)*set_green*CLK_FREQ_TB + tmp_green + tmp_green2;
               end
-            
-            // else if( redundant_clk < ( set_red + TIME_RED_YELLOW_TB + set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB )
-            //  begin
-            //     red    = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB;
-            //     yellow_noblink = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB + TIME_RED_YELLOW_TB*CLK_FREQ_TB;
-            //     green  = iteration_0*( set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB + set_green*CLK_FREQ_TB;
-            //     redundant_blink_green = redundant_clk - ( set_red + TIME_RED_YELLOW_TB + set_green )*CLK_FREQ_TB;
-            //     if( redundant_blink_green % 8 < 4 )
-            //       green = green + (redundant_blink_green/8)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
-            //     else
-            //       green = green + (redundant_blink_green/8)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
-            //   end
+
             else if( redundant_clk < ( set_red + TIME_RED_YELLOW_TB + set_green + BLINK_TIME_GREEN_TB + set_yellow )*CLK_FREQ_TB )
               begin
                 red    = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB ;
                 yellow_noblink = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB + TIME_RED_YELLOW_TB*CLK_FREQ_TB + redundant_clk - ( set_red + TIME_RED_YELLOW_TB + set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB;
 
-                redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> 3 )*8; 
-                if( redundant_blink_green < 4 )
-                  tmp_green = (CLK_DELAY_BLINK_GREEN >> 3)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2+ redundant_blink_green;
+                redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> BIT_SHIFT )*CLK_FULL_PERIOD_BLINK; 
+                if( redundant_blink_green < CLK_HALF_PERIOD_BLINK )
+                  tmp_green = (CLK_DELAY_BLINK_GREEN >> BIT_SHIFT)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2+ redundant_blink_green;
                 else 
-                  tmp_green = ((CLK_DELAY_BLINK_GREEN >> 3) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
+                  tmp_green = ((CLK_DELAY_BLINK_GREEN >> BIT_SHIFT) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
 
                 green  = (iteration_0 + 1)*set_green*CLK_FREQ_TB + tmp_green*2;
-
-                green  = iteration_0*( set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB + ( set_red + TIME_RED_YELLOW_TB + set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB;
               end
           end
 
@@ -288,7 +305,7 @@ while( pks.num() != 0 )
       end
     // $display("yellow_blink: %0d", yellow);
     // $display( "cnt_clk_cmd_2: %0d",cnt_cmd_2 );
-    $display( "iteration_0: %0d, cmd_0: %0d, redundant_clk: %0d, red: %0d, green: %0d, yellow_noblink: %0d, yellow_blink: %0d,redundant_clk_yellow: %0d, cnt_cmd_2 / 8: %0d", iteration_0, cnt_cmd_0, redundant_clk, red, green, yellow_noblink, yellow_blink, redundant_clk_yellow, cnt_cmd_2 >> 3 );
+    $display( "iteration_0: %0d, cmd_0: %0d, redundant_clk: %0d, red: %0d, green: %0d, yellow_noblink: %0d, yellow_blink: %0d,redundant_clk_yellow: %0d, cnt_cmd_2 / 8: %0d", iteration_0, cnt_cmd_0, redundant_clk, red, green, yellow_noblink, yellow_blink, redundant_clk_yellow, cnt_cmd_2 >> BIT_SHIFT );
   end
 pkr.put(new_ryg);
 
