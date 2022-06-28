@@ -116,9 +116,9 @@ for( int i = 0; i < MAX_PACKAGE_SEND; i++ )
 endtask
 
 task send_package( mailbox #( package_send_t ) pks,
-                   output RYG_receive_t               new_ryg,
-                          RYG_receive_t               data_in,
-                          int                         cnt_total_clk
+                   output  RYG_receive_t       new_ryg,
+                           RYG_receive_t       data_in,
+                           int                 cnt_total_clk
                  );
 
 int red, green;
