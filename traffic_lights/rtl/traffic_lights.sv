@@ -192,7 +192,7 @@ always_comb
           yellow_o = 1'b0;
 
           //blink green
-          if( cnt_blink_green == PERIOD_BLINK*CLK_FREQ - 10'd1 )
+          if( cnt_blink_green == PERIOD_BLINK*CLK_FREQ - 10'd1 || cnt_blink_green == 10'h3FF)
             green_o = !green_prev;
         end
       
@@ -209,7 +209,7 @@ always_comb
           green_o  = 1'b0;
 
           //blink yellow
-          if( cnt_blink_yellow == PERIOD_BLINK*CLK_FREQ - 10'd1 )
+          if( cnt_blink_yellow == PERIOD_BLINK*CLK_FREQ - 10'd1 || cnt_blink_yellow == 10'h3FF )
             yellow_o = !yellow_prev;
         end        
     endcase
@@ -226,7 +226,7 @@ always_ff @( posedge clk_i )
         clk_green        <= 16'd0;
         clk_blink_green  <= 16'd0;
         clk_yellow       <= 16'd0;
-        cnt_blink_yellow <= 10'h3FF;    
+        // cnt_blink_yellow <= 10'h3FF;    
         end 
       
       RED_S:
@@ -269,14 +269,41 @@ always_ff @( posedge clk_i )
             clk_yellow <= clk_yellow + 16'd1;
         end
       
-      NOTRANSITION_S:
-        begin
-          if( cnt_blink_yellow == PERIOD_BLINK*CLK_FREQ - 10'd1 )
-            cnt_blink_yellow <= 10'd0;
-          else
-            cnt_blink_yellow <= cnt_blink_yellow + 10'd1;
-        end
+      // NOTRANSITION_S:
+      //   begin
+      //     if( cnt_blink_yellow == PERIOD_BLINK*CLK_FREQ - 10'd1 )
+      //       cnt_blink_yellow <= 10'd0;
+      //     else
+      //       cnt_blink_yellow <= cnt_blink_yellow + 10'd1;
+      //   end
     endcase
+  end
+
+// always_ff @( posedge clk_i )
+//   begin
+//     if( state == BLINK_GREEN_S )
+//       begin
+//           if( clk_blink_green == CLK_FREQ_BLINK_GREEN - 16'd1 )
+//             clk_blink_green <= 16'd0;
+//           else
+//             clk_blink_green <= clk_blink_green + 16'd1;
+//       end
+//     else
+//       clk_blink_green <= 16'd0;  
+//   end
+
+always_ff @( posedge clk_i )
+  begin
+    if( state == NOTRANSITION_S )
+      begin
+        if( cnt_blink_yellow == PERIOD_BLINK*CLK_FREQ - 10'd1 )
+          cnt_blink_yellow <= 10'd0;
+        else
+          cnt_blink_yellow <= cnt_blink_yellow + 10'd1;
+      end
+    else
+      cnt_blink_yellow <= 10'h3FF;
+      
   end
 
 always_ff @( posedge clk_i )
@@ -335,7 +362,10 @@ always_ff @( posedge clk_i )
 
 always_ff @( posedge clk_i )
   begin
+  if( state == NOTRANSITION_S )
     yellow_prev <= yellow_o;
+  else
+    yellow_prev <= 1'b0;
   end
 
 assign green_time_valid  = ( cmd_valid_i ) && ( state == NOTRANSITION_S ) && ( set_green_time );

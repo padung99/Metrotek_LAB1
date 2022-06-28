@@ -13,7 +13,7 @@ parameter CLK_FREQ_TB             = 2;
 //Light time (ms)
 parameter TIME_RED_YELLOW_TB      = 4;
 parameter BLINK_TIME_GREEN_TB     = 12;
-
+parameter CLK_DELAY_BLINK_GREEN   = BLINK_TIME_GREEN_TB*CLK_FREQ_TB;
 parameter HALF_PERIOD_BLINK_TB    = 1;
 
 parameter MAX_PACKAGE_SEND        = 21;
@@ -132,12 +132,18 @@ logic [15:0] set_red;
 logic [15:0] set_green;
 logic [15:0] set_yellow;
 RYG_receive_t  new_ryg;
-int cnt_cmd_2;
-int cnt_cmd_1;
-int cnt_cmd_0;
+logic [15:0] cnt_cmd_2;
+logic [15:0] cnt_cmd_1;
+logic [15:0] cnt_cmd_0;
 int iteration_0;
 int redundant_clk;
 int redundant_blink_green;
+int tmp_green;
+
+cnt_cmd_2 = 16'd0;
+cnt_cmd_1 = 16'd0;
+cnt_cmd_0 = 16'd0;
+
 while( pks.num() != 0 )
   begin
     package_send_t new_pks;
@@ -172,15 +178,15 @@ while( pks.num() != 0 )
           end
         else
           begin
-            redundant_clk_yellow = cnt_cmd_2 - cnt_cmd_2 >> 3;
+            redundant_clk_yellow = cnt_cmd_2 - ( cnt_cmd_2 >> 3 )*8;
             
             if( redundant_clk_yellow < 4 )
-              yellow_blink = yellow_blink + (cnt_cmd_2 >> 3)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2 + redundant_clk_yellow;
+              yellow_blink =  yellow_blink + (cnt_cmd_2 >> 3)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2 + redundant_clk_yellow;
             else 
-              yellow_blink = yellow_blink + ((cnt_cmd_2 >> 3) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
+              yellow_blink =  yellow_blink + ((cnt_cmd_2 >> 3) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
       
             
-            cnt_cmd_2 = 0;
+            cnt_cmd_2 = 16'd0;
           end
 
         if( cmd_type_i_tb == 3'd1 )
@@ -205,41 +211,72 @@ while( pks.num() != 0 )
           begin
               iteration_0  = cnt_cmd_0 / (( set_red + TIME_RED_YELLOW_TB + set_green + BLINK_TIME_GREEN_TB + set_yellow )*CLK_FREQ_TB);
               redundant_clk = cnt_cmd_0 - iteration_0*( set_red + TIME_RED_YELLOW_TB + set_green + BLINK_TIME_GREEN_TB + set_yellow )*CLK_FREQ_TB;
-            //BLINK_TIME_GREEN_TB/4/2;
-
+              
             if( redundant_clk <= set_red*CLK_FREQ_TB )
               begin
                 red    = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + redundant_clk;
                 yellow_noblink = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB;
-                green  = iteration_0*( set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB;
+                
+                redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> 3 )*8; 
+                if( redundant_blink_green < 4 )
+                  tmp_green = (CLK_DELAY_BLINK_GREEN >> 3)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2+ redundant_blink_green;
+                else 
+                  tmp_green = ((CLK_DELAY_BLINK_GREEN >> 3) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
+
+                green  = iteration_0*set_green*CLK_FREQ_TB + tmp_green;
               end
             else if( redundant_clk <= ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB )
               begin
                 red    = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + redundant_clk;
                 yellow_noblink = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB + redundant_clk - set_red*CLK_FREQ_TB;
-                green  = iteration_0*( set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB;
+
+                redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> 3 )*8; 
+                if( redundant_blink_green < 4 )
+                  tmp_green = (CLK_DELAY_BLINK_GREEN >> 3)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2+ redundant_blink_green;
+                else 
+                  tmp_green = ((CLK_DELAY_BLINK_GREEN >> 3) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
+
+                green  = iteration_0*set_green*CLK_FREQ_TB + tmp_green;
               end
             else if( redundant_clk < ( set_red + TIME_RED_YELLOW_TB + set_green )*CLK_FREQ_TB )
               begin
                 red    = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB;
                 yellow_noblink = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB + TIME_RED_YELLOW_TB*CLK_FREQ_TB;
-                green  = iteration_0*( set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB + redundant_clk - ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB;
+                //green  = iteration_0*( set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB + redundant_clk - ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB;
+
+                redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> 3 )*8; 
+                if( redundant_blink_green < 4 )
+                  tmp_green = (CLK_DELAY_BLINK_GREEN >> 3)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2+ redundant_blink_green;
+                else 
+                  tmp_green = ((CLK_DELAY_BLINK_GREEN >> 3) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
+
+                green  = iteration_0*set_green*CLK_FREQ_TB + tmp_green + (redundant_clk - ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB);
               end
-            else if( redundant_clk < ( set_red + TIME_RED_YELLOW_TB + set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB )
-             begin
-                red    = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB;
-                yellow_noblink = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB + TIME_RED_YELLOW_TB*CLK_FREQ_TB;
-                green  = iteration_0*( set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB + set_green*CLK_FREQ_TB;
-                redundant_blink_green = redundant_clk - ( set_red + TIME_RED_YELLOW_TB + set_green )*CLK_FREQ_TB;
-                if( redundant_blink_green % 8 < 4 )
-                  green = green + (redundant_blink_green/8)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
-                else
-                  green = green + (redundant_blink_green/8)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
-              end
+            
+            // else if( redundant_clk < ( set_red + TIME_RED_YELLOW_TB + set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB )
+            //  begin
+            //     red    = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB;
+            //     yellow_noblink = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB + TIME_RED_YELLOW_TB*CLK_FREQ_TB;
+            //     green  = iteration_0*( set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB + set_green*CLK_FREQ_TB;
+            //     redundant_blink_green = redundant_clk - ( set_red + TIME_RED_YELLOW_TB + set_green )*CLK_FREQ_TB;
+            //     if( redundant_blink_green % 8 < 4 )
+            //       green = green + (redundant_blink_green/8)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
+            //     else
+            //       green = green + (redundant_blink_green/8)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
+            //   end
             else if( redundant_clk < ( set_red + TIME_RED_YELLOW_TB + set_green + BLINK_TIME_GREEN_TB + set_yellow )*CLK_FREQ_TB )
               begin
                 red    = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB ;
                 yellow_noblink = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB + TIME_RED_YELLOW_TB*CLK_FREQ_TB + redundant_clk - ( set_red + TIME_RED_YELLOW_TB + set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB;
+
+                redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> 3 )*8; 
+                if( redundant_blink_green < 4 )
+                  tmp_green = (CLK_DELAY_BLINK_GREEN >> 3)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2+ redundant_blink_green;
+                else 
+                  tmp_green = ((CLK_DELAY_BLINK_GREEN >> 3) + 1)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2;
+
+                green  = (iteration_0 + 1)*set_green*CLK_FREQ_TB + tmp_green*2;
+
                 green  = iteration_0*( set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB + ( set_red + TIME_RED_YELLOW_TB + set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB;
               end
           end
@@ -254,6 +291,7 @@ while( pks.num() != 0 )
     $display( "iteration_0: %0d, cmd_0: %0d, redundant_clk: %0d, red: %0d, green: %0d, yellow_noblink: %0d, yellow_blink: %0d,redundant_clk_yellow: %0d, cnt_cmd_2 / 8: %0d", iteration_0, cnt_cmd_0, redundant_clk, red, green, yellow_noblink, yellow_blink, redundant_clk_yellow, cnt_cmd_2 >> 3 );
   end
 pkr.put(new_ryg);
+
 $display( "red: %0d %0d, green: %0d %0d , yellow: %0d %0d", new_ryg.red_clk[0], new_ryg.red_clk[1], new_ryg.green_clk[0], new_ryg.green_clk[1], new_ryg.yellow_clk[0], new_ryg.yellow_clk[1] );
 
 endtask
