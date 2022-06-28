@@ -42,25 +42,28 @@ typedef struct {
 } data_send_t;
 
 mailbox #( package_sended_t )    pk_send     = new();
+mailbox #( package_sended_t )    pk_send2    = new();
 mailbox #( logic [WIDTH_O-1:0] ) output_data = new();
 mailbox #( data_send_t )         data_sended = new();
 
-task gen_package ( mailbox #( package_sended_t ) pks );
+task gen_package ( mailbox #( package_sended_t ) pks,
+                   mailbox #( package_sended_t ) pks2
+                 );
 for( int i = 0; i < MAX_PACKAGE_SEND; i++ )
   begin
     package_sended_t new_pk;
     new_pk.data  = $urandom_range( 2**16-1, 0 );
     new_pk.valid = $urandom_range( 1,0 );
     pks.put( new_pk );
-
+    pks2.put( new_pk );
   end
 endtask
 
-task send_pk( mailbox #( package_sended_t )    pks,
-              mailbox #( logic [WIDTH_O-1:0] ) data_o,
-              mailbox #( data_send_t )         sdata
+task send_pk( mailbox #( package_sended_t ) pks,
+              mailbox #( data_send_t )      sdata
             );
-logic [WIDTH_O-1:0] cnt;
+
+
 while( pks.num() != 0 )
   begin
     package_sended_t new_pks;
@@ -69,10 +72,6 @@ while( pks.num() != 0 )
     data_i_tb     = new_pks.data;
     data_val_i_tb = new_pks.valid;
 
-    if( data_val_o_tb )
-      begin
-        data_o.put( data_o_tb );
-      end
     if( data_val_i_tb )
       begin
         new_dts.cnt_bit_1 = $countones(data_i_tb);
@@ -83,10 +82,24 @@ while( pks.num() != 0 )
   end
 endtask
 
+task reveive_pk ( mailbox #( package_sended_t )    pks, 
+                  mailbox #( logic [WIDTH_O-1:0] )  data_o
+                );
+while( pks.num() != 0 )  
+  begin
+    package_sended_t new_pks;
+    if( data_val_o_tb )
+        data_o.put( data_o_tb );
+    pks.get( new_pks );
+    ##1;
+  end
+endtask
+
 task testing ( mailbox #( logic [WIDTH_O-1:0] ) data_o,
                mailbox #( data_send_t )         sdata
              );
-$display( "testing() is running!!!" );
+$display( "Valid send:    %0d elements", sdata.num() );
+$display( "Valid receive: %0d elements", data_o.num() );
 while( sdata.num() != 0 && data_o.num() != 0 )
   begin
     logic [WIDTH_O-1:0] new_data_out;
@@ -122,8 +135,12 @@ initial
     srst_i_tb <= 1;
     ##1;
     srst_i_tb <= 0;  
-    gen_package( pk_send );
-    send_pk( pk_send, output_data, data_sended );
+    gen_package( pk_send, pk_send2 );
+
+    fork
+      send_pk( pk_send, data_sended );
+      reveive_pk( pk_send2, output_data );
+    join
     testing( output_data, data_sended );
 
     $display("Test done!!!!");
