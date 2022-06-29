@@ -323,8 +323,6 @@ data_in.green_clk[1]  = green;
 data_in.green_clk[0]  = cnt_total_clk - green;
 data_in.yellow_clk[1] = yellow_blink + yellow_noblink;
 data_in.yellow_clk[0] = cnt_total_clk - ( yellow_blink + yellow_noblink );
-
-
 endtask
 
 task testing( RYG_receive_t new_ryg,
