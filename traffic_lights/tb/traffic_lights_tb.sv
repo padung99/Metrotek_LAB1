@@ -73,7 +73,7 @@ typedef struct {
   int yellow_clk [bit] = '{default:0};
 } RYG_receive_t;
 
-mailbox #( package_send_t ) pk_send    = new();
+mailbox #( package_send_t ) pk_send = new();
 RYG_receive_t               rgy_receive;
 RYG_receive_t               rgy_data_in;
 
@@ -105,6 +105,7 @@ for( int i = 0; i < MAX_PACKAGE_SEND; i++ )
     else if( new_pks.type_cmd == 3'd3 ||  new_pks.type_cmd == 3'd4 ||  new_pks.type_cmd == 3'd5 )
       new_pks.package_delay = 4;
     else if( new_pks.type_cmd == 3'd0 )
+      // Test cases
       // new_pks.package_delay = CLK_DELAY_STANDARD_MODE ; ////////t < red
       // new_pks.package_delay = CLK_DELAY_STANDARD_MODE + 3*TIME_RED_YELLOW_TB*CLK_FREQ_TB; //////t < red + red_yellow;
       // new_pks.package_delay = CLK_DELAY_STANDARD_MODE + ( GREEN_STATE_UPPER + TIME_RED_YELLOW_TB )*CLK_FREQ_TB; /////////t < red + red_yellow + green;
@@ -125,16 +126,19 @@ int red, green;
 int yellow_blink; 
 int yellow_noblink;
 int redundant_clk_yellow;
+
 logic detect_0;
 logic detect_1;
 logic detect_2;
+
 logic [15:0] set_red;
 logic [15:0] set_green;
 logic [15:0] set_yellow;
-// RYG_receive_t  new_ryg;
+
 logic [15:0] cnt_cmd_2;
 logic [15:0] cnt_cmd_1;
 logic [15:0] cnt_cmd_0;
+
 int iteration_0;
 int redundant_clk;
 int redundant_blink_green;
@@ -304,6 +308,7 @@ while( pks.num() != 0 )
               end
           end
 
+        //Count number of clk in bit 0 and bit 1 for red- green - yellow from ouput 
         new_ryg.red_clk[red_o_tb]++;
         new_ryg.green_clk[green_o_tb]++;
         new_ryg.yellow_clk[yellow_o_tb]++;
@@ -311,7 +316,7 @@ while( pks.num() != 0 )
         cnt_total_clk++;
       end
   end
-
+//Take number of clk in bit 0 and bit 1 for red- green - yellow from input parameters
 data_in.red_clk[1]    = red;
 data_in.red_clk[0]    = cnt_total_clk - red;
 data_in.green_clk[1]  = green;

@@ -63,7 +63,6 @@ task send_pk( mailbox #( package_sended_t ) pks,
               mailbox #( data_send_t )      sdata
             );
 
-
 while( pks.num() != 0 )
   begin
     package_sended_t new_pks;
