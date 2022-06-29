@@ -1,20 +1,20 @@
 module traffic_lights_tb;
 
 //Time in red state ~ time in green state
-parameter GREEN_STATE_LOWER       = 30;
-parameter GREEN_STATE_UPPER       = 40;
+parameter GREEN_STATE_LOWER       = 28;
+parameter GREEN_STATE_UPPER       = 45;
 
-parameter YELLOW_STATE_LOWER      = 3;
-parameter YELLOW_STATE_UPPER      = 5;
+parameter YELLOW_STATE_LOWER      = 2;
+parameter YELLOW_STATE_UPPER      = 6;
 
 //Frequency in (MHz)
 parameter CLK_FREQ_TB             = 2;
 
 //Light time (ms)
 parameter TIME_RED_YELLOW_TB      = 4;
-parameter BLINK_TIME_GREEN_TB     = 12;
+parameter BLINK_TIME_GREEN_TB     = 8;
 parameter CLK_DELAY_BLINK_GREEN   = BLINK_TIME_GREEN_TB*CLK_FREQ_TB;
-parameter HALF_PERIOD_BLINK_TB    = 1; ///
+parameter HALF_PERIOD_BLINK_TB    = 1; /// ( HALF_PERIOD_BLINK_TB*2 <= BLINK_TIME_GREEN_TB )
 
 parameter MAX_PACKAGE_SEND        = 21;
 
@@ -99,14 +99,14 @@ for( int i = 0; i < MAX_PACKAGE_SEND; i++ )
       new_pks.data = $urandom_range( 2**16-1,0 );
     
     if( new_pks.type_cmd == 3'd1 )
-      new_pks.package_delay = 2;
+      new_pks.package_delay = 5;
     else if( new_pks.type_cmd == 3'd2 )
       new_pks.package_delay = 30;
     else if( new_pks.type_cmd == 3'd3 ||  new_pks.type_cmd == 3'd4 ||  new_pks.type_cmd == 3'd5 )
       new_pks.package_delay = 4;
     else if( new_pks.type_cmd == 3'd0 )
-      // Test cases
-      // new_pks.package_delay = CLK_DELAY_STANDARD_MODE ; ////////t < red
+      // Test cases:
+      // new_pks.package_delay = CLK_DELAY_STANDARD_MODE; ////////t < red
       // new_pks.package_delay = CLK_DELAY_STANDARD_MODE + 3*TIME_RED_YELLOW_TB*CLK_FREQ_TB; //////t < red + red_yellow;
       // new_pks.package_delay = CLK_DELAY_STANDARD_MODE + ( GREEN_STATE_UPPER + TIME_RED_YELLOW_TB )*CLK_FREQ_TB; /////////t < red + red_yellow + green;
       new_pks.package_delay = CLK_DELAY_STANDARD_MODE + ( GREEN_STATE_UPPER + TIME_RED_YELLOW_TB + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB; /////////t < red + red_yellow + green + blink_green;
@@ -181,6 +181,7 @@ while( pks.num() != 0 )
               set_yellow = cmd_data_i_tb;
           end
         else
+          //Calculate number of clk corresponding to yellow blink
           begin
             redundant_clk_yellow = cnt_cmd_2 - ( cnt_cmd_2 >> BIT_SHIFT )*CLK_FULL_PERIOD_BLINK;
             
@@ -207,13 +208,16 @@ while( pks.num() != 0 )
           end
         
         //Testcase: red -- red_yellow -- green -- blink_green --yellow
-        //in standard mode, only cmd_type = 1 or cmd_type = 2 will change traffic light's state
+        //red_o = 1 when state = red / red_yellow otherwise red_o = 0;
+        //yellow_o = 1 when state = red_yellow /yellow/ notransition(yellow blink) otherwise yellow_o = 0;
+        //green_o = 1 when state = green / blink_green otherwise green_o = 0;
+        //In standard mode, only cmd_type = 1 or cmd_type = 2 will change traffic light's state
         //We will change "standard time" ( time in "standard mode", cmd_type = 0 ) to test different cases:
         //For example: We set "standard time" = 65 clk ( time red = 20, time red_yellow = 5, time green = 18, time blink_green = 4, time yellow = 3 )
         //==> To run all state in standard mode, traffic light need minimum 20+5+18+4+3 = 50 clk, but we set "standard time" = 65 clk
         //==> We will have 65-50 = 15 redundant clk ==> after running all states in standard mode( after 50 clk ), but cmd_type still = 0
         //==> traffic light will be in "RED state" before change to "notransition" (because we have more 15 clk)
-        //Divide these cases into 5 interval
+        //Divide these cases into 5 intervals
         //t < red;
         //t < red + red_yellow;
         //t < red + red_yellow + green;
@@ -233,6 +237,7 @@ while( pks.num() != 0 )
               begin
                 red                   = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + redundant_clk;
                 yellow_noblink        = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB;    
+                //Calculate number of clk corresponding to green blink
                 redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> BIT_SHIFT )*CLK_FULL_PERIOD_BLINK; 
                 if( redundant_blink_green < CLK_HALF_PERIOD_BLINK )
                   tmp_green = (CLK_DELAY_BLINK_GREEN >> BIT_SHIFT)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2+ redundant_blink_green;
@@ -261,7 +266,9 @@ while( pks.num() != 0 )
               begin
                 red                   = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB;
                 yellow_noblink        = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB + TIME_RED_YELLOW_TB*CLK_FREQ_TB;
-                redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> BIT_SHIFT )*CLK_FULL_PERIOD_BLINK; 
+                redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> BIT_SHIFT )*CLK_FULL_PERIOD_BLINK;
+
+                //Calculate number of clk corresponding to green blink
                 if( redundant_blink_green < CLK_HALF_PERIOD_BLINK )
                   tmp_green = (CLK_DELAY_BLINK_GREEN >> BIT_SHIFT)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2+ redundant_blink_green;
                 else 
@@ -276,7 +283,7 @@ while( pks.num() != 0 )
                 red                    = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB;
                 yellow_noblink         = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB + TIME_RED_YELLOW_TB*CLK_FREQ_TB;
        
-                //Calculate full blink_green
+                 //Calculate number of clk corresponding to green blink
                 redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> BIT_SHIFT )*CLK_FULL_PERIOD_BLINK; 
                 if( redundant_blink_green < CLK_HALF_PERIOD_BLINK )
                   tmp_green = (CLK_DELAY_BLINK_GREEN >> BIT_SHIFT)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2+ redundant_blink_green;
@@ -298,6 +305,7 @@ while( pks.num() != 0 )
                 red                   = iteration_0*( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB + ( set_red + TIME_RED_YELLOW_TB )*CLK_FREQ_TB ;
                 yellow_noblink        = iteration_0*( TIME_RED_YELLOW_TB + set_yellow )*CLK_FREQ_TB + TIME_RED_YELLOW_TB*CLK_FREQ_TB + redundant_clk - ( set_red + TIME_RED_YELLOW_TB + set_green + BLINK_TIME_GREEN_TB )*CLK_FREQ_TB;
 
+                 //Calculate number of clk corresponding to green blink
                 redundant_blink_green = CLK_DELAY_BLINK_GREEN - ( CLK_DELAY_BLINK_GREEN >> BIT_SHIFT )*CLK_FULL_PERIOD_BLINK; 
                 if( redundant_blink_green < CLK_HALF_PERIOD_BLINK )
                   tmp_green = (CLK_DELAY_BLINK_GREEN >> BIT_SHIFT)*CLK_FREQ_TB*HALF_PERIOD_BLINK_TB*2+ redundant_blink_green;
@@ -308,7 +316,7 @@ while( pks.num() != 0 )
               end
           end
 
-        //Count number of clk in bit 0 and bit 1 for red- green - yellow from ouput 
+        //Count number of clk corresponding to bit 0 and bit 1 for red- green - yellow from ouput 
         new_ryg.red_clk[red_o_tb]++;
         new_ryg.green_clk[green_o_tb]++;
         new_ryg.yellow_clk[yellow_o_tb]++;
@@ -347,17 +355,17 @@ if( new_ryg.yellow_clk[0] + new_ryg.yellow_clk[1] != total_clk )
     check_err_y = 1;
   end
 
-if( new_ryg.red_clk[0] + new_ryg.red_clk[1] != data_in.red_clk[0] + data_in.red_clk[1] )
+if( new_ryg.red_clk[0] != data_in.red_clk[0] || new_ryg.red_clk[1] != data_in.red_clk[1] )
   begin
     $display(" Error on red: clk received and clk set non equal");
     check_err_r = 1;
   end
-if( new_ryg.green_clk[0] + new_ryg.green_clk[1] != data_in.green_clk[0] + data_in.green_clk[1] )
+if( new_ryg.green_clk[0] != data_in.green_clk[0] || new_ryg.green_clk[1] != data_in.green_clk[1] )
   begin
     $display(" Error on green: clk received and clk set non equal ");
     check_err_g = 1;
   end
-if( new_ryg.yellow_clk[0] + new_ryg.yellow_clk[1] != data_in.yellow_clk[0] + data_in.yellow_clk[1] )
+if( new_ryg.yellow_clk[0] != data_in.yellow_clk[0] || new_ryg.yellow_clk[1] != data_in.yellow_clk[1] )
   begin
     $display(" Error on yellow: clk received and clk set non equal ");
     check_err_y = 1;
