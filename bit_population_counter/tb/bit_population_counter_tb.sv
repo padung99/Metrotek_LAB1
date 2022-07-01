@@ -33,47 +33,23 @@ bit_population_counter#(
 
 typedef struct {
   logic [WIDTH_TB-1:0] data;
-  logic                valid;
-} package_sended_t;
-
-typedef struct {
-  logic [WIDTH_TB-1:0] data;
   logic [WIDTH_O-1:0]  cnt_bit_1;
 } data_send_t;
 
-mailbox #( package_sended_t )    pk_send     = new();
-mailbox #( package_sended_t )    pk_send2    = new();
 mailbox #( logic [WIDTH_O-1:0] ) output_data = new();
 mailbox #( data_send_t )         data_sended = new();
 
-task gen_package ( mailbox #( package_sended_t ) pks,
-                   mailbox #( package_sended_t ) pks2
-                 );
+task gen_package_send ( mailbox #( data_send_t ) sdata );
 for( int i = 0; i < MAX_PACKAGE_SEND; i++ )
   begin
-    package_sended_t new_pk;
-    new_pk.data  = $urandom_range( 2**16-1, 0 );
-    new_pk.valid = $urandom_range( 1,0 );
-    pks.put( new_pk );
-    pks2.put( new_pk );
-  end
-endtask
-
-task send_pk( mailbox #( package_sended_t ) pks,
-              mailbox #( data_send_t )      sdata
-            );
-
-while( pks.num() != 0 )
-  begin
-    package_sended_t new_pks;
     data_send_t      new_dts;
-    pks.get( new_pks );
-    data_i_tb     = new_pks.data;
-    data_val_i_tb = new_pks.valid;
 
-    if( data_val_i_tb )
+    data_i_tb     = $urandom_range( 2**16-1, 0 );
+    data_val_i_tb = $urandom_range( 1,0 );
+
+    if( data_val_i_tb === 1'b1 )
       begin
-        new_dts.cnt_bit_1 = $countones(data_i_tb);
+        new_dts.cnt_bit_1 = $countones( data_i_tb );
         new_dts.data      = data_i_tb;
         sdata.put( new_dts );
       end
@@ -81,15 +57,11 @@ while( pks.num() != 0 )
   end
 endtask
 
-task reveive_pk ( mailbox #( package_sended_t )    pks, 
-                  mailbox #( logic [WIDTH_O-1:0] )  data_o
-                );
-while( pks.num() != 0 )  
+task reveive_pk ( mailbox #( logic [WIDTH_O-1:0] ) data_o ); 
+for( int i = 0; i < MAX_PACKAGE_SEND; i++ ) 
   begin
-    package_sended_t new_pks;
-    if( data_val_o_tb )
+    if( data_val_o_tb === 1'b1)
         data_o.put( data_o_tb );
-    pks.get( new_pks );
     ##1;
   end
 endtask
@@ -134,11 +106,10 @@ initial
     srst_i_tb <= 1;
     ##1;
     srst_i_tb <= 0;  
-    gen_package( pk_send, pk_send2 );
 
     fork
-      send_pk( pk_send, data_sended );
-      reveive_pk( pk_send2, output_data );
+      gen_package_send( data_sended );
+      reveive_pk( output_data );
     join
     testing( output_data, data_sended );
 

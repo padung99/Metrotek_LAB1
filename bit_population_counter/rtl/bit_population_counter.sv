@@ -22,11 +22,11 @@ always_ff @( posedge clk_i )
 
 always_ff @( posedge clk_i )
   begin
-    if( data_val_i )
+    if( data_val_i === 1'b1 )
       data_o <= cnt;
   end
 
-//This block will finish after 1 clk 
+//This block will be finished after 1 clk
 always_comb
   begin
     cnt = ($clog2(WIDTH)+1)'(0);   
