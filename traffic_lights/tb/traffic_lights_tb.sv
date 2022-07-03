@@ -82,6 +82,18 @@ logic [2:0] cmd_data [MAX_PACKAGE_SEND-1:0] = { 3'd1, 3'd2, 3'd3, 3'd4, 3'd5, 3'
 //Use "let" statement to return maximum between 2 elements
 let max(a,b) = (a > b) ? a : b;
 
+task send_cmd( package_send_t new_pks, int cnt_pkg_delay );
+
+cmd_data_i_tb  = new_pks.data;
+cmd_type_i_tb  = new_pks.type_cmd;
+
+if( cnt_pkg_delay == 0 )
+  cmd_valid_i_tb = new_pks.valid;
+else
+  cmd_valid_i_tb = 0;
+
+endtask
+
 task gen_package( mailbox #( package_send_t ) pks );
 int cnt;
 for( int i = 0; i < MAX_PACKAGE_SEND; i++ )
@@ -155,13 +167,7 @@ while( pks.num() != 0 )
     pks.get( new_pks );
     for( int i = 0; i < new_pks.package_delay; i++ )
       begin
-        cmd_data_i_tb  = new_pks.data;
-        cmd_type_i_tb  = new_pks.type_cmd;
-        
-        if( i == 0 )
-          cmd_valid_i_tb = new_pks.valid;
-        else
-          cmd_valid_i_tb = 0;
+        send_cmd( new_pks, i );
 
         if( cmd_type_i_tb == 3'd2 )
           begin
@@ -391,7 +397,9 @@ initial
   begin
     wait( !rst_done );
     gen_package( pk_send );
+
     send_package( pk_send, rgy_receive, rgy_data_in, total_clk );
+
     testing( rgy_receive, rgy_data_in );
     $display( "###Test done!!!!" );
     $stop();
