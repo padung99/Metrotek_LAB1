@@ -12,9 +12,9 @@ parameter CLK_FREQ_TB             = 2;
 
 //Light time (ms)
 parameter TIME_RED_YELLOW_TB      = 4;
-parameter BLINK_TIME_GREEN_TB     = 8;
+parameter BLINK_TIME_GREEN_TB     = 12;
 parameter CLK_DELAY_BLINK_GREEN   = BLINK_TIME_GREEN_TB*CLK_FREQ_TB;
-parameter HALF_PERIOD_BLINK_TB    = 1; /// ( HALF_PERIOD_BLINK_TB*2 <= BLINK_TIME_GREEN_TB )
+parameter HALF_PERIOD_BLINK_TB    = 2; /// ( HALF_PERIOD_BLINK_TB*2 <= BLINK_TIME_GREEN_TB )
 
 parameter MAX_PACKAGE_SEND        = 21;
 
